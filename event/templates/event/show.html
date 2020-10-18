@@ -1,0 +1,6 @@
+<h1>{{ event.name }}</h1>
+<ul>
+{% for field in event.field_set.all %}
+    <li>{{ field.name }}</li>
+{% endfor %}
+</ul>

@@ -1,0 +1,21 @@
+<h1>Create new Event</h1>
+
+{% if error_message %}
+<p><strong>{{ error_message }}</strong></p>
+{% endif %}
+
+<form action="{% url 'event:store' %}" method="post">
+{% csrf_token %}
+    <input type="text" name="name" id="name" placeholder="Event name">
+    <br><br>
+    <textarea name="description" id="description" placeholder="Description of the event"></textarea>
+    <br><br>
+    <select name="parent" id="parent">
+        <option value="" selected>No Parent</option>
+        {% for event in events %}
+        <option value="{{ event.id }}">{{ event.name }}</option>
+        {% endfor %}
+    </select>
+    <br><br>
+<input type="submit" value="Save">
+</form>
