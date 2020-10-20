@@ -49,3 +49,5 @@ data/
 
 # Node
 node_modules/
+
+frontend/static/frontend/skins

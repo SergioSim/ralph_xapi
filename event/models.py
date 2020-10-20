@@ -14,7 +14,7 @@ class Event(models.Model):
         """Check name not empty before save"""
         if not self.name:
             raise ValidationError("Field may not be empty")
-        super().save(self, *args, **kwargs)
+        super(Event, self).save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.id}-{self.name}"

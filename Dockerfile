@@ -38,7 +38,8 @@ COPY . /app/
 # dependencies
 RUN pip uninstall -y ralph_xapi ; \
     pip install -e .[dev] ; \
-    cd frontend && npm install && cd ..
+    cd frontend && npm install && \
+    cp -r node_modules/tinymce/skins static/frontend/ && cd ..
 
 # To install new npm packages have to login as root and run npm install package.
 # Are there better options ?

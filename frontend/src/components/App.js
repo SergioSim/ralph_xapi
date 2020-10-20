@@ -1,15 +1,19 @@
 import React, { Component } from "react";
-import { render } from "react-dom";
 import MyGraph from "./MyGraph";
+import Nav from "./nav/Nav";
+import Sidebar from "./nav/Sidebar";
 import './App.css';
+import Event from "./event/Event";
+import CreateEvent from "./event/CreateEvent";
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      data: [],
+      events: [],
       loaded: false,
-      placeholder: "Loading"
+      placeholder: "Loading",
+      main: null
     };
   }
 
@@ -23,29 +27,43 @@ class App extends Component {
         }
         return response.json();
       })
-      .then(data => {
+      .then(events => {
         this.setState(() => {
           return {
-            data,
+            events,
             loaded: true
           };
         });
       });
   }
 
+  handleSidebarClick(event){
+    if(event == "create"){
+      this.setState({main: <CreateEvent events={this.state.events} appendEvent={(event) => {this.appendEvent(event)}}/>})
+      return;
+    }
+    event ? this.setState({main: <Event event={event}/>}) : this.setState({main: null})
+  }
+
+  appendEvent(event){
+  
+    this.setState((state, props) => ({
+      events: [...state.events, event]
+    }))
+  }
+
   render() {
     return (
       <div>
-      <ul>
-        {this.state.data.map(contact => {
-          return (
-            <li key={contact.id}>
-              {contact.name} - {contact.email}
-            </li>
-          );
-        })}
-      </ul>
-      <MyGraph/>
+        <Nav/>
+        <div className="container-fluid">
+          <div className="row">
+            <Sidebar events={this.state.events} onClick={(event) => this.handleSidebarClick(event)}/>
+            <main role="main" className="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+              {this.state.main && this.state.main}
+            </main>
+          </div>
+        </div>
       </div>
     );
   }
