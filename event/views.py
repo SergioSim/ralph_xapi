@@ -16,6 +16,11 @@ class EventListCreate(generics.ListCreateAPIView):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
 
+class EventDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get Update and delete"""
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
+
 class IndexView(generic.ListView):
     """Show all events"""
     template_name = 'event/index.html'

@@ -1,6 +1,7 @@
 import { Editor } from '@tinymce/tinymce-react';
 import React, { Component } from "react";
 import { getCookie } from '../../utils'
+import { alertService } from '../../services/alert.service';
 
 class CreateEvent extends Component {
   constructor(props) {
@@ -43,29 +44,29 @@ class CreateEvent extends Component {
         parent: this.state.parent
       })
     }).then(response => {
-      if (response.status > 400) {
-        console.log(response.status);
-        return this.setState(() => {
-          return { placeholder: "Something went wrong!" };
-        });
-      }
+      this.statusCode = response.status;
       return response.json();
     }).then(event => {
-      this.props.appendEvent(event);
+      if(this.statusCode != 201){
+        alertService.error(JSON.stringify(event));
+        return;
+      }
+      this.props.updateEvent(event);
       this.setState({
         name: "",
         description: "",
         parent: ""
       })
       this.editor.setContent('');
+      alertService.success('Event: "' + event.name + '" created with success!');
     })
   }
 
   render() {
     return (
-      <div className="mt-4">
+      <div className="container mt-4">
         <form id="eventCreateForm" action="/" method="POST" onSubmit={(e) => this.submit(e)}>
-          <div className="d-flex justify-content-between align-content-center mb-2">
+          <div className="d-flex justify-content-between align-content-center mb-2 ml-3">
             <h2>Create a new Event!</h2>
             <button type="submit" from="eventCreateForm" className="btn btn-primary">Save</button>
           </div>
@@ -88,11 +89,13 @@ class CreateEvent extends Component {
             <select className="custom-select" size="5" value={this.state.parent}
                     onChange={(event) => this.handleParentChange(event)}>
               <option>No Parent</option>
-              {this.props.events.map(event => {
-                return(
+              {(() => {
+                const events = [];
+                this.props.events.forEach(event => events.push(
                   <option value={event.id} key={event.name + event.id}>{event.name}</option>
-                )
-              })}
+                ));
+                return events;
+              })()}
             </select>
           </div>
         </form>

@@ -4,7 +4,7 @@ class Sidebar extends Component {
 	constructor(props){
 		super(props);
 		this.state = {
-				events: this.props.events 
+				events: this.props.events
 		}
   }
 
@@ -15,29 +15,33 @@ class Sidebar extends Component {
   
   render() {
     return (
-      <nav id="sidebarMenu" className="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+      <nav id="sidebarMenu" className="col-md-4 col-lg-3 d-md-block bg-light sidebar collapse">
         <div className="sidebar-sticky">
           <ul className="nav flex-column">
           <li className="nav-item">
             <div className="nav-link active">
               <div className="d-flex justify-content-between align-content-center">
-                <span>Events</span>
-                <a href="#" aria-label="Add a new event" onClick={(e) => this.onClick(e, "create")}>
-                  <span data-feather="plus-circle"></span>
+                <h3>Events</h3>
+                <a href="" aria-label="Add a new event" onClick={(e) => this.onClick(e, "create")}>
+                  <span className="mouse-pointer" data-feather="plus-circle" style={{width: 40, height: 40}}></span>
                 </a>
               </div>
             </div>
           </li>
-            {this.props.events.map(item => {
-              return(
-                <li className="nav-item" key={item.name}>
-                  <a className="nav-link" href="#" onClick={(e) => this.onClick(e, item)}>
-                    <span data-feather="file"></span>
-                    {item.name}
-                  </a>
-                </li>
-              )
-            })}
+          {(() => {
+            const events = [];
+            this.props.events.forEach(item => events.push(
+              <li className="nav-item" key={item.name}>
+                <div className={
+                  `nav-link ${this.props.showEvent && this.props.showEvent.id == item.id ? "active" : ""} 
+                  ${this.props.editEvent && this.props.editEvent.id == item.id ? "alert-warning" : ""}`}
+                  onClick={(e) => this.onClick(e, item)}>
+                <span data-feather="file"></span> {item.name}
+                </div>
+              </li>
+            ))
+            return events
+          })()}
           </ul>
         </div>
       </nav>

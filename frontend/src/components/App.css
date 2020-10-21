@@ -1,4 +1,9 @@
-.App {
-    text-align: center;
-    color: aqua;
+#sidebarMenu .nav-link {
+    cursor: pointer;
+}
+#sidebarMenu .nav-link.active {
+    cursor: inherit;
+}
+.mouse-pointer {
+    cursor: pointer;
 }

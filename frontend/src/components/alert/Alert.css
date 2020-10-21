@@ -1,0 +1,35 @@
+.Alert {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 1030;
+}
+
+.Alert .alert, .Alert a {
+  color: white;
+  font-weight: bold;
+}
+
+.Alert a {
+  font-size: large;
+}
+
+.alert-success {
+  background-color: #4caf50;
+  border-color: #4caf50;
+}
+
+.alert-info {
+  background-color: #2196f3;
+  border-color: #2196f3;
+}
+
+.alert-warning {
+  background-color: #ff9800;
+  border-color: #ff9800;
+}
+
+.alert-danger {
+  background-color: #f44336;
+  border-color: #f44336;
+}
