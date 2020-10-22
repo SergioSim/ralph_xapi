@@ -8,7 +8,10 @@ class Event(models.Model):
     name = models.CharField(max_length=200, unique=True, blank=False)
     description = models.TextField()
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
+    validate_schema = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now=True)
+
+    # pylint: disable=signature-differs
 
     def save(self, *args, **kwargs):
         """Check name not empty before save"""
@@ -22,6 +25,15 @@ class Event(models.Model):
 
 class EventField(models.Model):
     """Event Field class"""
+
+    class Meta:
+        """Indexes"""
+        indexes = [
+            models.Index(fields=['event', 'name']),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['event', 'name'], name="unique_id_name"),
+        ]
 
     class EventNature(models.TextChoices):
         """Event Nature class"""
@@ -39,34 +51,43 @@ class EventField(models.Model):
         EMAIL    = "Email",    "Email"
         IPV4     = "IPv4",     "IPv4"
 
-    event_id = models.ForeignKey(Event, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     nature = models.CharField(max_length=10, choices=EventNature.choices)
-    nature_id = models.IntegerField()
+    nature_id = models.IntegerField(null=True, blank=True)
     description = models.TextField()
     required = models.BooleanField(default=True)
     allow_none = models.BooleanField(default=False)
-    # TODO: add validate field
+    validate = models.TextField(null=True, blank=True)
+    excluded = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.event_id}-{self.name}"
+        return f"{self.event}-{self.name}"
 
 class NestedNature(models.Model):
-    event_id = models.ForeignKey(Event, on_delete=models.CASCADE)
+    """Represents marshmallow.fields.Nested class"""
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
     exclude = models.CharField(max_length=200)
 
 class DictNature(models.Model):
-    keys = models.ForeignKey(EventField, on_delete=models.CASCADE, null=True,  blank=True, related_name='key')
-    values = models.ForeignKey(EventField, on_delete=models.CASCADE, null=True,  blank=True, related_name='val')
+    """Represents marshmallow.fields.Dict class"""
+    keys = models.ForeignKey(
+        EventField, on_delete=models.CASCADE, null=True,  blank=True, related_name='key')
+    values = models.ForeignKey(
+        EventField, on_delete=models.CASCADE, null=True,  blank=True, related_name='val')
 
 class ListNature(models.Model):
-    eventField = models.ForeignKey(EventField, on_delete=models.CASCADE, null=True, blank=True)
+    """Represents marshmallow.fields.List class"""
+    event_field = models.ForeignKey(EventField, on_delete=models.CASCADE, null=True, blank=True)
 
 class IntegerNature(models.Model):
+    """Represents marshmallow.fields.Integer class"""
     strict = models.BooleanField(default=True)
 
 class UrlNature(models.Model):
+    """Represents marshmallow.fields.Url class"""
     relative = models.BooleanField(default=True)
 
 class IPv4Nature(models.Model):
+    """Represents marshmallow.fields.IPv4 class"""
     exploded = models.BooleanField(default=True)

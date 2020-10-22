@@ -1,11 +1,11 @@
 import React, { Component } from "react";
-import MyGraph from "./MyGraph";
 import Nav from "./nav/Nav";
 import Sidebar from "./nav/Sidebar";
 import './App.css';
 import Event from "./event/Event";
 import CreateEvent from "./event/CreateEvent";
 import Alert from "./alert/Alert";
+import { alertService } from '../services/alert.service';
 import feather from 'feather-icons/dist/feather';
 
 class App extends Component {
@@ -15,7 +15,6 @@ class App extends Component {
       events: new Map(),
       showEvent: null,
       editEvent: null,
-      loaded: false,
       placeholder: "Loading",
       main: null
     };
@@ -26,25 +25,42 @@ class App extends Component {
   }
 
   componentDidMount() {
+    this.fetchEvents()
+  }
+
+  fetchEvents(){
     fetch("api/event")
       .then(response => {
         if (response.status > 400) {
-          return this.setState(() => {
-            return { placeholder: "Something went wrong!" };
-          });
+          alertService.error(`Some thing is wrong :( Status: ${response.status}`);
+          return;
         }
         return response.json();
       })
       .then(events => {
-        events = new Map(events.map(x => [x.id, x]));
-        this.setState(() => {
-          return {
-            events,
-            loaded: true
-          };
-        });
-        feather.replace();
+        this.fetchEventFields(events);
       });
+  }
+
+  fetchEventFields(iEvents){
+    fetch("api/event/field/")
+      .then(response => {
+        if (response.status > 400) {
+          alertService.error(`Some thing is wrong :( Status: ${response.status}`);
+          return;
+        }
+        return response.json();
+      })
+      .then(fields => {
+        fields = fields.reduce(
+          (acc, x) => acc.set(x.event, (acc.get(x.event) || new Map()).set(x.id, x)),
+          new Map());
+        const events = new Map(iEvents.map(x => {
+          x.fields = fields.get(x.id) || new Map();
+          return [x.id, x];
+        }));
+        this.setState({events})
+      });        
   }
 
   handleSidebarClick(event){
@@ -68,7 +84,8 @@ class App extends Component {
     editEvent={editEvent ? editEvent : state.editEvent}
     updateEditEvent={(editEvent, callback, event) => {this.updateEditEvent(editEvent, callback, event)}}
     handleSidebarClick={(event) => this.handleSidebarClick(event)}
-
+    deleteEvent={(id) => this.deleteEvent(id)}
+    fetchEvents={() => this.fetchEvents()}
     />
   }
 
@@ -77,6 +94,13 @@ class App extends Component {
       (state, props) => ({events: state.events.set(event.id, event)}),
       calback
     );
+  }
+
+  deleteEvent(id){
+    this.setState((state, props) => {
+      state.events.delete(id);
+      return {}
+    })
   }
 
   updateEditEvent(editEvent, callback = () => {}, event=null){

@@ -6,8 +6,8 @@ from django.urls import reverse
 from django.views import generic
 from rest_framework import generics
 
-from .models import Event
-from .serializers import EventSerializer
+from .models import Event, EventField
+from .serializers import EventSerializer, EventFieldSerializer
 
 # Create your views here.
 
@@ -17,9 +17,19 @@ class EventListCreate(generics.ListCreateAPIView):
     serializer_class = EventSerializer
 
 class EventDetail(generics.RetrieveUpdateDestroyAPIView):
-    """Get Update and delete"""
+    """Get Update and delete events"""
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+class EventFieldListCreate(generics.ListCreateAPIView):
+    """List and create event fields"""
+    queryset = EventField.objects.all()
+    serializer_class = EventFieldSerializer
+
+class EventFieldDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get Update and delete event fields"""
+    queryset = EventField.objects.all()
+    serializer_class = EventFieldSerializer
 
 class IndexView(generic.ListView):
     """Show all events"""
@@ -39,23 +49,3 @@ class EditView(generic.DetailView):
     """Edit event"""
     model = Event
     template_name = 'event/edit.html'
-
-def create(request):
-    """Show event creation page"""
-    events = Event.objects.order_by('name')
-    context = {"events": events}
-    return render(request, 'event/create.html', context)
-
-# def update(request, event_id):
-#     """Update existing event"""
-#     return HttpResponse("You're updating an existing event %s." % event_id)
-
-def store(request):
-    """Store new event"""
-    data = request.POST
-    try:
-        event = Event(name=data['name'], description=data['description'])
-        event.save()
-    except (KeyError, IntegrityError):
-        return render(request, 'event/create.html', {"error_message": "Shit happens, try again..."})
-    return HttpResponseRedirect(reverse('event:show', args=(event.id,)))

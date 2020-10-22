@@ -29,7 +29,7 @@ class CreateEvent extends Component {
   submit(e){
     e.preventDefault();
     const csrftoken = getCookie('csrftoken');
-    fetch('api/event', {
+    fetch('api/event/', {
       credentials: 'include',
       method: 'POST',
       mode: 'same-origin',
@@ -47,6 +47,7 @@ class CreateEvent extends Component {
       this.statusCode = response.status;
       return response.json();
     }).then(event => {
+      event.fields = new Map();
       if(this.statusCode != 201){
         alertService.error(JSON.stringify(event));
         return;
@@ -77,7 +78,7 @@ class CreateEvent extends Component {
             <small id="nameHelp" className="form-text text-muted">Should be unique</small>
           </div>
           <div className="form-group form-check">
-            <label htmlFor="name">Description:</label>
+            <label htmlFor="description">Description:</label>
             <Editor
               initialValue=""
               init={{height: 500}}
