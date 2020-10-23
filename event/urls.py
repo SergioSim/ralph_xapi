@@ -4,6 +4,8 @@ from django.urls import path
 
 from . import views
 
+# pylint: disable=invalid-name
+
 app_name = "event"
 urlpatterns = [
     path("", views.EventListCreate.as_view()),

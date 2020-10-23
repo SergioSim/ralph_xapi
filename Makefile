@@ -58,12 +58,12 @@ lint-isort: ## automatically re-arrange python imports in back-end code base
 
 lint-pylint: ## lint back-end python sources with pylint
 	@echo 'lint:pylint started…'
-	@$(COMPOSE_TEST_RUN_APP) pylint event
+	@$(COMPOSE_TEST_RUN_APP) pylint --ignore event/migrations event
 .PHONY: lint-pylint
 
 lint-bandit: ## lint back-end python sources with bandit
 	@echo 'lint:bandit started…'
-	@$(COMPOSE_TEST_RUN_APP) bandit -qr event
+	@$(COMPOSE_TEST_RUN_APP) bandit -qr --skip B101 event
 .PHONY: lint-bandit
 
 logs: ## display app logs (follow mode)

@@ -3,6 +3,8 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+# pylint: disable=signature-differs,arguments-differ,no-member,too-few-public-methods
+
 
 class Event(models.Model):
     """Event model used to create Marshmallow converter"""
@@ -12,8 +14,6 @@ class Event(models.Model):
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
     validate_schema = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now=True)
-
-    # pylint: disable=signature-differs
 
     def save(self, *args, **kwargs):
         """Check name not empty before save"""

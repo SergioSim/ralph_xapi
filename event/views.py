@@ -1,15 +1,11 @@
 """Event views"""
-from django.db import IntegrityError
-from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render
-from django.urls import reverse
 from django.views import generic
 from rest_framework import generics
 
 from .models import Event, EventField
 from .serializers import EventFieldSerializer, EventSerializer
 
-# Create your views here.
+# pylint: disable=no-member,too-many-ancestors
 
 
 class EventListCreate(generics.ListCreateAPIView):

@@ -3,6 +3,8 @@ from rest_framework import serializers
 
 from . import models
 
+# pylint: disable=missing-class-docstring,too-few-public-methods
+
 
 class EventSerializer(serializers.ModelSerializer):
     """Event django model serializer"""

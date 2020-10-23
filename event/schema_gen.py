@@ -1,9 +1,10 @@
 """Genrator of Marshmallow schemas from Database records"""
 import sys
 
-from marshmallow import Schema, fields
+from marshmallow import Schema
 
 from .models import EventField, IntegerNature
+
 
 class SchemaGen:
     """Creates Marshmallow schemas from Database records"""
@@ -49,6 +50,7 @@ class SchemaGen:
     @staticmethod
     def add_integer_props(field_props, record_field):
         """Add strict property if record_fields nature is Integer"""
+        # pylint: disable=no-member
         if record_field.nature != EventField.EventNature.INTEGER:
             return
         field_props["strict"] = True
