@@ -43,7 +43,7 @@ lint: \
 
 lint-black: ## lint back-end python sources with black
 	@echo 'lint:black started…'
-	@$(COMPOSE_TEST_RUN_APP) black src/ralph_xapi tests
+	@$(COMPOSE_TEST_RUN_APP) black event
 .PHONY: lint-black
 
 lint-flake8: ## lint back-end python sources with flake8
@@ -58,12 +58,12 @@ lint-isort: ## automatically re-arrange python imports in back-end code base
 
 lint-pylint: ## lint back-end python sources with pylint
 	@echo 'lint:pylint started…'
-	@$(COMPOSE_TEST_RUN_APP) pylint src/ralph_xapi tests
+	@$(COMPOSE_TEST_RUN_APP) pylint event
 .PHONY: lint-pylint
 
 lint-bandit: ## lint back-end python sources with bandit
 	@echo 'lint:bandit started…'
-	@$(COMPOSE_TEST_RUN_APP) bandit -qr src/ralph_xapi
+	@$(COMPOSE_TEST_RUN_APP) bandit -qr event
 .PHONY: lint-bandit
 
 logs: ## display app logs (follow mode)

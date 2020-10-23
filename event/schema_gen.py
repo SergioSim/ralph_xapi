@@ -2,7 +2,9 @@
 import sys
 
 from marshmallow import Schema, fields
+
 from .models import EventField, IntegerNature
+
 
 class SchemaGen:
     """Creates Marshmallow schemas from Database records"""
@@ -12,7 +14,7 @@ class SchemaGen:
         """Returns single marshmallow schema for one record"""
         schema_props = {}
         SchemaGen.put_field(schema_props, record_field)
-        schema_name = ''.join([e for e in record.name if e.isalnum()])
+        schema_name = "".join([e for e in record.name if e.isalnum()])
         return type(schema_name, (Schema,), schema_props)
 
     @staticmethod
@@ -23,13 +25,14 @@ class SchemaGen:
         field_props = SchemaGen.get_field_props(record_field)
         # print("RECORD FIELD NAME", record_field.name)
         schema_props[record_field.name] = SchemaGen.get_class_from_event_nature(
-            record_field.nature)(**field_props)
+            record_field.nature
+        )(**field_props)
 
     @staticmethod
     def get_field_props(record_field):
         """Returns a dict with the properties needeed for a marshmallow field"""
         field_props = {}
-        for field_prop in ['required', 'allow_none', 'validate']:
+        for field_prop in ["required", "allow_none", "validate"]:
             field_props[field_prop] = getattr(record_field, field_prop)
         SchemaGen.add_related_props(field_props, record_field)
         return field_props

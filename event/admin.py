@@ -1,8 +1,16 @@
 from django.contrib import admin
 
 from .models import (
-    Event, EventField, NestedNature, DictNature, ListNature, IntegerNature, UrlNature, IPv4Nature
+    DictNature,
+    Event,
+    EventField,
+    IntegerNature,
+    IPv4Nature,
+    ListNature,
+    NestedNature,
+    UrlNature,
 )
+
 # Register your models here.
 
 admin.site.register(Event)

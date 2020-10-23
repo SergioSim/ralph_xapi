@@ -1,0 +1,13 @@
+[run]
+omit = 
+  event/__init__.py
+  event/admin.py
+  event/apps.py
+  event/migration*
+  event/serializers.py
+  event/tests.py
+  event/tests/__init__.py
+  event/tests/test_outil.py
+  event/tests/test_schema_gen.py
+  event/urls.py
+  event/views.py
