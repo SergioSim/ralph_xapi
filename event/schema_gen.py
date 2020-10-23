@@ -5,7 +5,6 @@ from marshmallow import Schema, fields
 
 from .models import EventField, IntegerNature
 
-
 class SchemaGen:
     """Creates Marshmallow schemas from Database records"""
 

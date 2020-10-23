@@ -6,6 +6,20 @@ from ..models import Event, EventField, IntegerNature
 from ..schema_gen import SchemaGen
 from . import test_outil
 
+pytestmark = pytest.mark.django_db
+
+event = Event(id=1, name="eventname", description="desc")
+integer_nature0 = IntegerNature(id=1, strict=False)
+integer_nature1 = IntegerNature(id=2, strict=True)
+
+@pytest.fixture()
+def django_db_setup(django_db_setup, django_db_blocker):
+    """Populating the DB"""
+    with django_db_blocker.unblock():
+        event.save()
+        integer_nature0.save()
+        integer_nature1.save()
+
 # test data
 NATURES = EventField.EventNature
 
@@ -31,10 +45,6 @@ boolean_props0 = {"required": True, "allow_none": False}
 boolean_props1 = {"required": False, "allow_none": True}
 integer_props0 = {"nature_id": 1}
 integer_props1 = {"nature_id": 2}
-
-event = Event({"id": 1, "name": "eventname", "description": "desc"})
-integer_nature0 = IntegerNature({"id": 1, "strict": False})
-integer_nature1 = IntegerNature({"id": 2, "strict": True})
 
 
 def test_get_class_from_event_nature():
@@ -90,24 +100,24 @@ def test_schema_with_one_simple_field(input_props, expected_props):
         )
 
 
-# @pytest.mark.parametrize("input_props,expected_props", [
-#     ({}, {**boolean_props0, "strict": True}),
-#     (boolean_props1, {**boolean_props1, "strict": True}),
-#     (integer_props0, {**boolean_props0, "strict": False}),
-#     (integer_props1, {**boolean_props0, "strict": True}),
-#     ({**integer_props0, **boolean_props0}, {**boolean_props0, "strict": False}),
-#     ({**integer_props1, **boolean_props1}, {**boolean_props1, "strict": True}),
-# ])
-# def test_schema_with_one_integer_field(input_props, expected_props):
-#     """
-#     Given a database record of a schema with one Integer EventField
-#     We should generate the corresponding marshmallow schema
-#     """
-#     # Create EventField
-#     event_field = EventField(**common_props, **input_props, nature=NATURES.INTEGER)
-#     # Generate the Schema
-#     schema = SchemaGen.gen_schema_from_record(event, event_field)
-#     test_outil.compare_fields(
-#         expected=fields.Integer(**expected_props),
-#         actual=schema.__dict__['_declared_fields']["field"]
-#     )
+@pytest.mark.parametrize("input_props,expected_props", [
+    ({}, {**boolean_props0, "strict": True}),
+    (boolean_props1, {**boolean_props1, "strict": True}),
+    (integer_props0, {**boolean_props0, "strict": False}),
+    (integer_props1, {**boolean_props0, "strict": True}),
+    ({**integer_props0, **boolean_props0}, {**boolean_props0, "strict": False}),
+    ({**integer_props1, **boolean_props1}, {**boolean_props1, "strict": True}),
+])
+def test_schema_with_one_integer_field(input_props, expected_props):
+    """
+    Given a database record of a schema with one Integer EventField
+    We should generate the corresponding marshmallow schema
+    """
+    # Create EventField
+    event_field = EventField(**common_props, **input_props, nature=NATURES.INTEGER)
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(event, event_field)
+    test_outil.compare_fields(
+        expected=fields.Integer(**expected_props),
+        actual=schema.__dict__['_declared_fields']["field"]
+    )
