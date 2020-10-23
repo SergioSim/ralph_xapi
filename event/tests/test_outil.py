@@ -8,4 +8,5 @@ def compare_fields(expected, actual):
             continue
         if isinstance(value, list):
             continue
+        print(attr)
         assert value == actual.__dict__[attr]

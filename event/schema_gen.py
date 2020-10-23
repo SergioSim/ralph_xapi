@@ -3,7 +3,9 @@ import sys
 
 from marshmallow import Schema
 
-from .models import EventField, IntegerNature
+from .models import EventField
+
+NATURE = EventField.EventNature
 
 
 class SchemaGen:
@@ -45,15 +47,25 @@ class SchemaGen:
     @staticmethod
     def add_related_props(field_props, record_field):
         """Add props for fields having an additional nature_id relation"""
-        SchemaGen.add_integer_props(field_props, record_field)
+        func, prop_name = SchemaGen.get_func_prop_name(record_field)
+        if func:
+            func(field_props, record_field, prop_name)
 
     @staticmethod
-    def add_integer_props(field_props, record_field):
-        """Add strict property if record_fields nature is Integer"""
+    def get_func_prop_name(record_field):
+        """Returns the function and data by record_fields nature"""
+        return {
+            NATURE.INTEGER: (SchemaGen.add_boolean_props, "strict"),
+            NATURE.URL: (SchemaGen.add_boolean_props, "relative"),
+            NATURE.IPV4: (SchemaGen.add_boolean_props, "exploded"),
+        }.get(record_field.nature, (None, None))
+
+    @staticmethod
+    def add_boolean_props(field_props, record_field, prop_name):
+        """Add strict property if record_fields nature is Integer/Url/Ipv4"""
         # pylint: disable=no-member
-        if record_field.nature != EventField.EventNature.INTEGER:
-            return
-        field_props["strict"] = True
-        inature = IntegerNature.objects.filter(pk=record_field.nature_id).first()
-        if inature:
-            field_props["strict"] = inature.strict
+        field_props[prop_name] = True
+        nature_type = getattr(sys.modules["event.models"], record_field.nature + "Nature")
+        nature = nature_type.objects.filter(pk=record_field.nature_id).first()
+        if nature:
+            field_props[prop_name] = getattr(nature, prop_name)
