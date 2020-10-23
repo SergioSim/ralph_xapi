@@ -23,7 +23,7 @@ class EventDetail(generics.RetrieveUpdateDestroyAPIView):
 
 class EventFieldListCreate(generics.ListCreateAPIView):
     """List and create event fields"""
-    queryset = EventField.objects.all()
+    queryset = EventField.objects.select_related().all()
     serializer_class = EventFieldSerializer
 
 class EventFieldDetail(generics.RetrieveUpdateDestroyAPIView):
