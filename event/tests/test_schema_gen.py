@@ -2,7 +2,7 @@
 import pytest
 from marshmallow import Schema, fields
 
-from ..models import Event, EventField, IntegerNature, UrlNature, IPv4Nature
+from ..models import Event, EventField, IntegerNature, IPv4Nature, UrlNature
 from ..schema_gen import SchemaGen
 from .test_outil import compare_fields
 
@@ -98,7 +98,7 @@ def test_schema_name_should_be_alphanumeric():
 
 @pytest.mark.parametrize(
     "input_props,expected_props",
-    [({}, BOOLEAN_PROPS0), (BOOLEAN_PROPS1, BOOLEAN_PROPS1)],
+    [({}, BOOLEAN_PROPS0), (BOOLEAN_PROPS1, BOOLEAN_PROPS1)]
 )
 def test_schema_with_one_simple_field(input_props, expected_props):
     """
@@ -140,11 +140,11 @@ def test_schema_with_one_simple_field(input_props, expected_props):
         (IPV4_PROPS1, {**BOOLEAN_PROPS0, "exploded": True}),
         ({**IPV4_PROPS0, **BOOLEAN_PROPS0}, {**BOOLEAN_PROPS0, "exploded": False}),
         ({**IPV4_PROPS1, **BOOLEAN_PROPS1}, {**BOOLEAN_PROPS1, "exploded": True}),
-    ],
+    ]
 )
-def test_schema_with_one_integer_field(input_props, expected_props):
+def test_schema_with_one_integer_url_or_ipv4_field(input_props, expected_props):
     """
-    Given a database record of a schema with one Integer EventField
+    Given a database record of a schema with one Integer, Url or Ipv4 EventField
     We should generate the corresponding marshmallow schema
     """
     # Create EventField
@@ -158,5 +158,102 @@ def test_schema_with_one_integer_field(input_props, expected_props):
         field_type = fields.IPv4
     compare_fields(
         expected=field_type(**expected_props),
+        actual=schema.__dict__["_declared_fields"]["field"],
+    )
+
+
+@pytest.mark.parametrize(
+    "input_props,expected_props,input_field_props,expected_field_props",
+    [
+        ({}, BOOLEAN_PROPS0, {}, BOOLEAN_PROPS0),
+        ({}, BOOLEAN_PROPS0, BOOLEAN_PROPS1, BOOLEAN_PROPS1),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {}, BOOLEAN_PROPS0),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, BOOLEAN_PROPS1, BOOLEAN_PROPS1),
+    ]
+)
+def test_schema_with_one_list_field_with_a_simple_field(
+    input_props, expected_props, input_field_props, expected_field_props
+):
+    """
+    Given a database record of a schema with one List EventField
+    We should generate the corresponding marshmallow schema
+    """
+    for nature, field_type in SIMPLE_TYPES.items():
+        # Persist Simple Event Field in DB
+        EventField(id=3, **COMMON_PROPS, **input_field_props, nature=nature).save()
+        # Create List EventField
+        event_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.LIST, nature_id=3)
+        # Generate the Schema
+        schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+        compare_fields(
+            expected=fields.List(field_type(**expected_field_props), **expected_props),
+            actual=schema.__dict__["_declared_fields"]["field"],
+        )
+
+
+@pytest.mark.parametrize(
+    "input_props,expected_props,input_field_props,expected_field_props",
+    [
+        # Integer
+        ({}, BOOLEAN_PROPS0, {"nature": NATURES.INTEGER}, {**BOOLEAN_PROPS0, "strict": True}),
+        ({}, BOOLEAN_PROPS0, {**BOOLEAN_PROPS1, "nature": NATURES.INTEGER}, {**BOOLEAN_PROPS1, "strict": True}),
+        ({}, BOOLEAN_PROPS0, INTEGER_PROPS0, {**BOOLEAN_PROPS0, "strict": False}),
+        ({}, BOOLEAN_PROPS0, INTEGER_PROPS1, {**BOOLEAN_PROPS0, "strict": True}),
+        ({}, BOOLEAN_PROPS0, {**INTEGER_PROPS0, **BOOLEAN_PROPS0}, {**BOOLEAN_PROPS0, "strict": False}),
+        ({}, BOOLEAN_PROPS0, {**INTEGER_PROPS1, **BOOLEAN_PROPS1}, {**BOOLEAN_PROPS1, "strict": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {"nature": NATURES.INTEGER}, {**BOOLEAN_PROPS0, "strict": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**BOOLEAN_PROPS1, "nature": NATURES.INTEGER}, {**BOOLEAN_PROPS1, "strict": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, INTEGER_PROPS0, {**BOOLEAN_PROPS0, "strict": False}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, INTEGER_PROPS1, {**BOOLEAN_PROPS0, "strict": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**INTEGER_PROPS0, **BOOLEAN_PROPS0}, {**BOOLEAN_PROPS0, "strict": False}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**INTEGER_PROPS1, **BOOLEAN_PROPS1}, {**BOOLEAN_PROPS1, "strict": True}),
+        # Url
+        ({}, BOOLEAN_PROPS0, {"nature": NATURES.URL}, {**BOOLEAN_PROPS0, "relative": True}),
+        ({}, BOOLEAN_PROPS0, {**BOOLEAN_PROPS1, "nature": NATURES.URL}, {**BOOLEAN_PROPS1, "relative": True}),
+        ({}, BOOLEAN_PROPS0, URL_PROPS0, {**BOOLEAN_PROPS0, "relative": False}),
+        ({}, BOOLEAN_PROPS0, URL_PROPS1, {**BOOLEAN_PROPS0, "relative": True}),
+        ({}, BOOLEAN_PROPS0, {**URL_PROPS0, **BOOLEAN_PROPS0}, {**BOOLEAN_PROPS0, "relative": False}),
+        ({}, BOOLEAN_PROPS0, {**URL_PROPS1, **BOOLEAN_PROPS1}, {**BOOLEAN_PROPS1, "relative": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {"nature": NATURES.URL}, {**BOOLEAN_PROPS0, "relative": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**BOOLEAN_PROPS1, "nature": NATURES.URL}, {**BOOLEAN_PROPS1, "relative": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, URL_PROPS0, {**BOOLEAN_PROPS0, "relative": False}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, URL_PROPS1, {**BOOLEAN_PROPS0, "relative": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**URL_PROPS0, **BOOLEAN_PROPS0}, {**BOOLEAN_PROPS0, "relative": False}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**URL_PROPS1, **BOOLEAN_PROPS1}, {**BOOLEAN_PROPS1, "relative": True}),
+        # IPv4
+        ({}, BOOLEAN_PROPS0, {"nature": NATURES.IPV4}, {**BOOLEAN_PROPS0, "exploded": True}),
+        ({}, BOOLEAN_PROPS0, {**BOOLEAN_PROPS1, "nature": NATURES.IPV4}, {**BOOLEAN_PROPS1, "exploded": True}),
+        ({}, BOOLEAN_PROPS0, IPV4_PROPS0, {**BOOLEAN_PROPS0, "exploded": False}),
+        ({}, BOOLEAN_PROPS0, IPV4_PROPS1, {**BOOLEAN_PROPS0, "exploded": True}),
+        ({}, BOOLEAN_PROPS0, {**IPV4_PROPS0, **BOOLEAN_PROPS0}, {**BOOLEAN_PROPS0, "exploded": False}),
+        ({}, BOOLEAN_PROPS0, {**IPV4_PROPS1, **BOOLEAN_PROPS1}, {**BOOLEAN_PROPS1, "exploded": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {"nature": NATURES.IPV4}, {**BOOLEAN_PROPS0, "exploded": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**BOOLEAN_PROPS1, "nature": NATURES.IPV4}, {**BOOLEAN_PROPS1, "exploded": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, IPV4_PROPS0, {**BOOLEAN_PROPS0, "exploded": False}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, IPV4_PROPS1, {**BOOLEAN_PROPS0, "exploded": True}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**IPV4_PROPS0, **BOOLEAN_PROPS0}, {**BOOLEAN_PROPS0, "exploded": False}),
+        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**IPV4_PROPS1, **BOOLEAN_PROPS1}, {**BOOLEAN_PROPS1, "exploded": True}),
+    ]
+)
+def test_schema_with_one_list_field_with_one_integer_url_or_ipv4_field(
+    input_props, expected_props, input_field_props, expected_field_props
+):
+    """
+    Given a database record of a schema with one Integer, Url or Ipv4 EventField
+    We should generate the corresponding marshmallow schema
+    """
+    # Persist Simple Event Field in DB
+    EventField(id=3, **COMMON_PROPS, **input_field_props).save()
+    # Create List EventField
+    event_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.LIST, nature_id=3)
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+    field_type = fields.Integer
+    if input_field_props["nature"] == NATURES.URL:
+        field_type = fields.Url
+    if input_field_props["nature"] == NATURES.IPV4:
+        field_type = fields.IPv4
+    compare_fields(
+        expected=fields.List(field_type(**expected_field_props), **expected_props),
         actual=schema.__dict__["_declared_fields"]["field"],
     )

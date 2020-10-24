@@ -1,4 +1,5 @@
 """Common functions used in test"""
+from marshmallow import fields
 
 
 def compare_fields(expected, actual):
@@ -8,5 +9,7 @@ def compare_fields(expected, actual):
             continue
         if isinstance(value, list):
             continue
-        print(attr)
+        if isinstance(value, fields.Field):
+            compare_fields(value, actual.__dict__[attr])
+            continue
         assert value == actual.__dict__[attr]

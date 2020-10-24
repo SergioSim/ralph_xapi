@@ -24,11 +24,15 @@ class SchemaGen:
         """Insert a marshmallow field in schema_props dict"""
         if not record_field:
             return
+        schema_props[record_field.name] = SchemaGen.create_field(record_field)
+
+    @staticmethod
+    def create_field(record_field):
+        """Returns a new marshmallow field from record_field"""
         field_props = SchemaGen.get_field_props(record_field)
-        # print("RECORD FIELD NAME", record_field.name)
-        schema_props[record_field.name] = SchemaGen.get_class_from_event_nature(
-            record_field.nature
-        )(**field_props)
+        field_args = SchemaGen.get_field_args(record_field)
+        field_class = SchemaGen.get_class_from_event_nature(record_field.nature)
+        return field_class(*field_args, **field_props)
 
     @staticmethod
     def get_field_props(record_field):
@@ -38,6 +42,15 @@ class SchemaGen:
             field_props[field_prop] = getattr(record_field, field_prop)
         SchemaGen.add_related_props(field_props, record_field)
         return field_props
+
+    @staticmethod
+    def get_field_args(record_field):
+        """Returns a dict with the properties needeed for a marshmallow field"""
+        field_args = []
+        if record_field.nature == NATURE.LIST:
+            nested_field = EventField.objects.get(pk=record_field.nature_id)
+            field_args.append(SchemaGen.create_field(nested_field))
+        return field_args
 
     @staticmethod
     def get_class_from_event_nature(nature):
@@ -65,7 +78,9 @@ class SchemaGen:
         """Add strict property if record_fields nature is Integer/Url/Ipv4"""
         # pylint: disable=no-member
         field_props[prop_name] = True
-        nature_type = getattr(sys.modules["event.models"], record_field.nature + "Nature")
+        nature_type = getattr(
+            sys.modules["event.models"], record_field.nature + "Nature"
+        )
         nature = nature_type.objects.filter(pk=record_field.nature_id).first()
         if nature:
             field_props[prop_name] = getattr(nature, prop_name)

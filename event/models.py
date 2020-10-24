@@ -57,6 +57,8 @@ class EventField(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     nature = models.CharField(max_length=10, choices=EventNature.choices)
+    # TODO: make database condition - if special field - nature_id may not be null!
+    # We can't have List event fields not having the corresponding event_field type!
     nature_id = models.IntegerField(null=True, blank=True)
     description = models.TextField()
     required = models.BooleanField(default=True)
