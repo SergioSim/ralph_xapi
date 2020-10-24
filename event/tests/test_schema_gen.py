@@ -2,7 +2,15 @@
 import pytest
 from marshmallow import Schema, fields
 
-from ..models import Event, EventField, IntegerNature, IPv4Nature, UrlNature
+from ..models import (
+    DictNature,
+    Event,
+    EventField,
+    IntegerNature,
+    IPv4Nature,
+    ListNature,
+    UrlNature,
+)
 from ..schema_gen import SchemaGen
 from .test_outil import compare_fields
 
@@ -59,6 +67,7 @@ RELATED_TYPES = {
 }
 
 COMMON_PROPS = {"event_id": 1, "name": "field", "description": "desc"}
+COMMON_PROPS1 = {"event_id": 1, "name": "field1", "description": "desc"}
 BOOLEAN_PROPS0 = {"required": True, "allow_none": False}
 BOOLEAN_PROPS1 = {"required": False, "allow_none": True}
 RELATED_PROPS0 = {"nature_id": 1}
@@ -154,9 +163,10 @@ def test_one_list_field_with_simple_field(input_props, expected_props):
         for nature, field_type in SIMPLE_TYPES.items():
             # Persist Simple Event Field in DB
             EventField(id=3, **COMMON_PROPS, **input_props, nature=nature).save()
+            ListNature(id=1, event_field_id=3).save()
             # Create List EventField
             event_field = EventField(
-                **COMMON_PROPS, **list_input_props, nature=NATURES.LIST, nature_id=3
+                **COMMON_PROPS, **list_input_props, nature=NATURES.LIST, nature_id=1
             )
             # Generate the Schema
             schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
@@ -178,9 +188,10 @@ def test_one_list_field_with_related_field(input_props, expected_props, related_
         for nature, field_type_tuple in SIMPLE_RELATED_TYPES_WITH_KEY.items():
             # Persist Simple Event Field in DB
             EventField(id=3, **COMMON_PROPS, **input_props, nature=nature).save()
+            ListNature(id=1, event_field_id=3).save()
             # Create EventField
             event_field = EventField(
-                **COMMON_PROPS, **list_input_props, nature=NATURES.LIST, nature_id=3
+                **COMMON_PROPS, **list_input_props, nature=NATURES.LIST, nature_id=1
             )
             # Generate the Schema
             expected_props = expected_props.copy()
@@ -193,3 +204,36 @@ def test_one_list_field_with_related_field(input_props, expected_props, related_
                 actual=schema.__dict__["_declared_fields"]["field"],
             )
             del expected_props[field_type_tuple[1]]
+
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_dict_field_with_simple_field(input_props, expected_props):
+    """
+    Given a database record of a schema with one Dict EventField
+    We should generate the corresponding marshmallow schema
+    """
+    # 2 * 6 * 2 * 6 * 2 = 288 tests \o/
+    for key_nature, key_type in SIMPLE_TYPES.items():
+        for key_props, key_expected_props in SIMPLE_FIELD_TEST:
+            # Persist Simple Event Field in DB
+            EventField(id=3, **COMMON_PROPS, **key_props, nature=key_nature).save()
+            for value_nature, value_type in SIMPLE_TYPES.items():
+                for value_props, value_expected_props in SIMPLE_FIELD_TEST:
+                    EventField(
+                        id=4, **COMMON_PROPS1, **value_props, nature=value_nature
+                    ).save()
+                    DictNature(id=2, keys_id=3, values_id=4).save()
+                    # Create List EventField
+                    event_field = EventField(
+                        **COMMON_PROPS, **input_props, nature=NATURES.DICT, nature_id=2
+                    )
+                    # Generate the Schema
+                    schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+                    compare_fields(
+                        expected=fields.Dict(
+                            keys=key_type(**key_expected_props),
+                            values=value_type(**value_expected_props),
+                            **expected_props
+                        ),
+                        actual=schema.__dict__["_declared_fields"]["field"],
+                    )

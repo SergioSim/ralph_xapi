@@ -1,24 +1,15 @@
 """Admin pages"""
 from django.contrib import admin
 
-from .models import (
-    DictNature,
-    Event,
-    EventField,
-    IntegerNature,
-    IPv4Nature,
-    ListNature,
-    NestedNature,
-    UrlNature,
-)
+from . import models
 
 # Register your models here.
 
-admin.site.register(Event)
-admin.site.register(EventField)
-admin.site.register(NestedNature)
-admin.site.register(DictNature)
-admin.site.register(ListNature)
-admin.site.register(IntegerNature)
-admin.site.register(UrlNature)
-admin.site.register(IPv4Nature)
+admin.site.register(models.Event)
+admin.site.register(models.EventField)
+admin.site.register(models.NestedNature)
+admin.site.register(models.DictNature)
+admin.site.register(models.ListNature)
+admin.site.register(models.IntegerNature)
+admin.site.register(models.UrlNature)
+admin.site.register(models.IPv4Nature)

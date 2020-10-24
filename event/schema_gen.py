@@ -3,7 +3,7 @@ import sys
 
 from marshmallow import Schema
 
-from .models import EventField
+from .models import DictNature, EventField, ListNature
 
 NATURE = EventField.EventNature
 
@@ -49,7 +49,7 @@ class SchemaGen:
         # pylint: disable=no-member
         field_args = []
         if record_field.nature == NATURE.LIST:
-            nested_field = EventField.objects.get(pk=record_field.nature_id)
+            nested_field = ListNature.objects.get(pk=record_field.nature_id).event_field
             field_args.append(SchemaGen.create_field(nested_field))
         return field_args
 
@@ -61,22 +61,23 @@ class SchemaGen:
     @staticmethod
     def add_related_props(field_props, record_field):
         """Add props for fields having an additional nature_id relation"""
-        func, prop_name = SchemaGen.get_func_prop_name(record_field)
+        func, args = SchemaGen.get_func_prop_name(record_field)
         if func:
-            func(field_props, record_field, prop_name)
+            func(field_props, record_field, *args)
 
     @staticmethod
     def get_func_prop_name(record_field):
         """Returns the function and data by record_fields nature"""
         return {
-            NATURE.INTEGER: (SchemaGen.add_boolean_props, "strict"),
-            NATURE.URL: (SchemaGen.add_boolean_props, "relative"),
-            NATURE.IPV4: (SchemaGen.add_boolean_props, "exploded"),
+            NATURE.INTEGER: (SchemaGen.add_boolean_props, ["strict"]),
+            NATURE.URL: (SchemaGen.add_boolean_props, ["relative"]),
+            NATURE.IPV4: (SchemaGen.add_boolean_props, ["exploded"]),
+            NATURE.DICT: (SchemaGen.add_dict_props, []),
         }.get(record_field.nature, (None, None))
 
     @staticmethod
     def add_boolean_props(field_props, record_field, prop_name):
-        """Add strict property if record_fields nature is Integer/Url/Ipv4"""
+        """Add prop_name property if record_fields nature is Integer/Url/Ipv4"""
         # pylint: disable=no-member
         field_props[prop_name] = True
         nature_type = getattr(
@@ -85,3 +86,15 @@ class SchemaGen:
         nature = nature_type.objects.filter(pk=record_field.nature_id).first()
         if nature:
             field_props[prop_name] = getattr(nature, prop_name)
+
+    @staticmethod
+    def add_dict_props(field_props, record_field):
+        """Add keys/values to field_props for dict fields"""
+        # pylint: disable=no-member
+        field_props["keys"] = None
+        field_props["values"] = None
+        nature = DictNature.objects.filter(pk=record_field.nature_id).first()
+        if nature and nature.keys:
+            field_props["keys"] = SchemaGen.create_field(nature.keys)
+        if nature and nature.values:
+            field_props["values"] = SchemaGen.create_field(nature.values)
