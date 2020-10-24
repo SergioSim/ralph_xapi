@@ -64,6 +64,16 @@ BOOLEAN_PROPS1 = {"required": False, "allow_none": True}
 RELATED_PROPS0 = {"nature_id": 1}
 RELATED_PROPS1 = {"nature_id": 2}
 
+SIMPLE_FIELD_TEST = [({}, BOOLEAN_PROPS0), (BOOLEAN_PROPS1, BOOLEAN_PROPS1)]
+RELATED_FIELD_TEST = [
+    ({}, BOOLEAN_PROPS0, True),
+    (BOOLEAN_PROPS1, BOOLEAN_PROPS1, True),
+    (RELATED_PROPS0, BOOLEAN_PROPS0, False),
+    (RELATED_PROPS1, BOOLEAN_PROPS0, True),
+    ({**RELATED_PROPS0, **BOOLEAN_PROPS0}, BOOLEAN_PROPS0, False),
+    ({**RELATED_PROPS1, **BOOLEAN_PROPS1}, BOOLEAN_PROPS1, True),
+]
+
 
 def test_get_class_from_event_nature():
     """
@@ -98,11 +108,8 @@ def test_schema_name_should_be_alphanumeric():
     assert schema.__name__ == "name123name"
 
 
-@pytest.mark.parametrize(
-    "input_props,expected_props",
-    [({}, BOOLEAN_PROPS0), (BOOLEAN_PROPS1, BOOLEAN_PROPS1)]
-)
-def test_schema_with_one_simple_field(input_props, expected_props):
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_simple_field(input_props, expected_props):
     """
     Given a database record of a schema with one simple EventField
     We should generate the corresponding marshmallow schema
@@ -118,18 +125,8 @@ def test_schema_with_one_simple_field(input_props, expected_props):
         )
 
 
-@pytest.mark.parametrize(
-    "input_props,expected_props,related_value",
-    [
-        ({}, BOOLEAN_PROPS0, True),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, True),
-        (RELATED_PROPS0, BOOLEAN_PROPS0, False),
-        (RELATED_PROPS1, BOOLEAN_PROPS0, True),
-        ({**RELATED_PROPS0, **BOOLEAN_PROPS0}, BOOLEAN_PROPS0, False),
-        ({**RELATED_PROPS1, **BOOLEAN_PROPS1}, BOOLEAN_PROPS1, True),
-    ]
-)
-def test_schema_with_one_integer_url_or_ipv4_field(input_props, expected_props, related_value):
+@pytest.mark.parametrize("input_props,expected_props,related_value", RELATED_FIELD_TEST)
+def test_one_related_field(input_props, expected_props, related_value):
     """
     Given a database record of a schema with one Integer, Url or Ipv4 EventField
     We should generate the corresponding marshmallow schema
@@ -147,70 +144,52 @@ def test_schema_with_one_integer_url_or_ipv4_field(input_props, expected_props, 
         del expected_props[field_type_tuple[1]]
 
 
-@pytest.mark.parametrize(
-    "input_props,expected_props,input_field_props,expected_field_props",
-    [
-        ({}, BOOLEAN_PROPS0, {}, BOOLEAN_PROPS0),
-        ({}, BOOLEAN_PROPS0, BOOLEAN_PROPS1, BOOLEAN_PROPS1),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {}, BOOLEAN_PROPS0),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, BOOLEAN_PROPS1, BOOLEAN_PROPS1),
-    ]
-)
-def test_schema_with_one_list_field_with_a_simple_field(
-    input_props, expected_props, input_field_props, expected_field_props
-):
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_list_field_with_simple_field(input_props, expected_props):
     """
     Given a database record of a schema with one List EventField
     We should generate the corresponding marshmallow schema
     """
-    for nature, field_type in SIMPLE_TYPES.items():
-        # Persist Simple Event Field in DB
-        EventField(id=3, **COMMON_PROPS, **input_field_props, nature=nature).save()
-        # Create List EventField
-        event_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.LIST, nature_id=3)
-        # Generate the Schema
-        schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
-        compare_fields(
-            expected=fields.List(field_type(**expected_field_props), **expected_props),
-            actual=schema.__dict__["_declared_fields"]["field"],
-        )
+    for list_input_props, list_expected_props in SIMPLE_FIELD_TEST:
+        for nature, field_type in SIMPLE_TYPES.items():
+            # Persist Simple Event Field in DB
+            EventField(id=3, **COMMON_PROPS, **input_props, nature=nature).save()
+            # Create List EventField
+            event_field = EventField(
+                **COMMON_PROPS, **list_input_props, nature=NATURES.LIST, nature_id=3
+            )
+            # Generate the Schema
+            schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+            compare_fields(
+                expected=fields.List(
+                    field_type(**expected_props), **list_expected_props
+                ),
+                actual=schema.__dict__["_declared_fields"]["field"],
+            )
 
 
-@pytest.mark.parametrize(
-    "input_props,expected_props,input_field_props,expected_field_props,related_value",
-    [
-        ({}, BOOLEAN_PROPS0, {}, BOOLEAN_PROPS0, True),
-        ({}, BOOLEAN_PROPS0, BOOLEAN_PROPS1, BOOLEAN_PROPS1, True),
-        ({}, BOOLEAN_PROPS0, RELATED_PROPS0, BOOLEAN_PROPS0, False),
-        ({}, BOOLEAN_PROPS0, RELATED_PROPS1, BOOLEAN_PROPS0, True),
-        ({}, BOOLEAN_PROPS0, {**RELATED_PROPS0, **BOOLEAN_PROPS0}, BOOLEAN_PROPS0, False),
-        ({}, BOOLEAN_PROPS0, {**RELATED_PROPS1, **BOOLEAN_PROPS1}, BOOLEAN_PROPS1, True),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {}, BOOLEAN_PROPS0, True),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, BOOLEAN_PROPS1, BOOLEAN_PROPS1, True),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, RELATED_PROPS0, BOOLEAN_PROPS0, False),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, RELATED_PROPS1, BOOLEAN_PROPS0, True),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**RELATED_PROPS0, **BOOLEAN_PROPS0}, BOOLEAN_PROPS0, False),
-        (BOOLEAN_PROPS1, BOOLEAN_PROPS1, {**RELATED_PROPS1, **BOOLEAN_PROPS1}, BOOLEAN_PROPS1, True),
-    ]
-)
-def test_schema_with_one_list_field_with_one_integer_url_or_ipv4_field(
-    input_props, expected_props, input_field_props, expected_field_props, related_value
-):
+@pytest.mark.parametrize("input_props,expected_props,related_value", RELATED_FIELD_TEST)
+def test_one_list_field_with_related_field(input_props, expected_props, related_value):
     """
     Given a database record of a schema with one Integer, Url or Ipv4 EventField
     We should generate the corresponding marshmallow schema
     """
-    for nature, field_type_tuple in SIMPLE_RELATED_TYPES_WITH_KEY.items():
-        # Persist Simple Event Field in DB
-        EventField(id=3, **COMMON_PROPS, **input_field_props, nature=nature).save()
-        # Create EventField
-        event_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.LIST, nature_id=3)
-        # Generate the Schema
-        expected_field_props = expected_field_props.copy()
-        expected_field_props[field_type_tuple[1]] = related_value
-        schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
-        compare_fields(
-            expected=fields.List(field_type_tuple[0](**expected_field_props), **expected_props),
-            actual=schema.__dict__["_declared_fields"]["field"],
-        )
-        del expected_field_props[field_type_tuple[1]]
+    for list_input_props, list_expected_props in SIMPLE_FIELD_TEST:
+        for nature, field_type_tuple in SIMPLE_RELATED_TYPES_WITH_KEY.items():
+            # Persist Simple Event Field in DB
+            EventField(id=3, **COMMON_PROPS, **input_props, nature=nature).save()
+            # Create EventField
+            event_field = EventField(
+                **COMMON_PROPS, **list_input_props, nature=NATURES.LIST, nature_id=3
+            )
+            # Generate the Schema
+            expected_props = expected_props.copy()
+            expected_props[field_type_tuple[1]] = related_value
+            schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+            compare_fields(
+                expected=fields.List(
+                    field_type_tuple[0](**expected_props), **list_expected_props
+                ),
+                actual=schema.__dict__["_declared_fields"]["field"],
+            )
+            del expected_props[field_type_tuple[1]]

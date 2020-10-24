@@ -46,6 +46,7 @@ class SchemaGen:
     @staticmethod
     def get_field_args(record_field):
         """Returns a dict with the properties needeed for a marshmallow field"""
+        # pylint: disable=no-member
         field_args = []
         if record_field.nature == NATURE.LIST:
             nested_field = EventField.objects.get(pk=record_field.nature_id)
