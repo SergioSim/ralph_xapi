@@ -9,6 +9,7 @@ from ..models import (
     IntegerNature,
     IPv4Nature,
     ListNature,
+    NestedNature,
     UrlNature,
 )
 from ..schema_gen import SchemaGen
@@ -17,6 +18,7 @@ from .test_outil import compare_fields
 pytestmark = pytest.mark.django_db  # pylint: disable=invalid-name
 
 EVENT = Event(id=1, name="eventname", description="desc")
+EVENT1 = Event(id=2, name="eventname1", description="desc")
 INTEGER_NATURE0 = IntegerNature(id=1, strict=False)
 INTEGER_NATURE1 = IntegerNature(id=2, strict=True)
 URL_NATURE0 = UrlNature(id=1, relative=False)
@@ -31,6 +33,7 @@ def django_db_setup(django_db_setup, django_db_blocker):
     # pylint: disable=redefined-outer-name,unused-argument
     with django_db_blocker.unblock():
         EVENT.save()
+        EVENT1.save()
         INTEGER_NATURE0.save()
         INTEGER_NATURE1.save()
         URL_NATURE0.save()
@@ -68,6 +71,7 @@ RELATED_TYPES = {
 
 COMMON_PROPS = {"event_id": 1, "name": "field", "description": "desc"}
 COMMON_PROPS1 = {"event_id": 1, "name": "field1", "description": "desc"}
+COMMON_PROPS2 = {"event_id": 2, "name": "field2", "description": "desc"}
 BOOLEAN_PROPS0 = {"required": True, "allow_none": False}
 BOOLEAN_PROPS1 = {"required": False, "allow_none": True}
 RELATED_PROPS0 = {"nature_id": 1}
@@ -237,3 +241,52 @@ def test_one_dict_field_with_simple_field(input_props, expected_props):
                         ),
                         actual=schema.__dict__["_declared_fields"]["field"],
                     )
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_nested_field_with_empty(input_props, expected_props):
+    """
+    Given a database record of a schema with one Dict EventField
+    We should generate the corresponding marshmallow schema
+    """
+    # Create EventField
+    NestedNature(id=1, event=EVENT1).save()
+    event_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.NESTED, nature_id=1)
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+
+    class eventname1(Schema):
+        """Expected Schema Class"""
+
+    compare_fields(
+        expected=fields.Nested(eventname1(), **expected_props),
+        actual=schema.__dict__["_declared_fields"]["field"],
+    )
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_nested_field_with_simple_field(input_props, expected_props):
+    """
+    Given a database record of a schema with one Dict EventField
+    We should generate the corresponding marshmallow schema
+    """
+    NestedNature(id=1, event=EVENT1).save()
+    EventField.objects.filter(event_id=1).delete()
+    for field_props, expected_field_props in SIMPLE_FIELD_TEST:
+        for nature, field_type in SIMPLE_TYPES.items():
+            # Create EventField in EVENT1
+            event_field = EventField(**COMMON_PROPS2, **field_props, nature=nature)
+            event_field.save()
+            # Generate the Schema of EVENT nesting EVENT1
+            nested_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.NESTED, nature_id=1)
+            schema = SchemaGen.gen_schema_from_record(EVENT, nested_field)
+
+            class eventname1(Schema):
+                field2 = field_type(**expected_field_props)
+
+            class eventname(Schema):
+                field = fields.Nested(eventname1(), **expected_props)
+
+            compare_fields(
+                expected=eventname,
+                actual=schema,
+            )
+            event_field.delete()

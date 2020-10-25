@@ -3,7 +3,7 @@ import sys
 
 from marshmallow import Schema
 
-from .models import DictNature, EventField, ListNature
+from .models import DictNature, EventField, ListNature, NestedNature
 
 NATURE = EventField.EventNature
 
@@ -51,6 +51,10 @@ class SchemaGen:
         if record_field.nature == NATURE.LIST:
             nested_field = ListNature.objects.get(pk=record_field.nature_id).event_field
             field_args.append(SchemaGen.create_field(nested_field))
+        if record_field.nature == NATURE.NESTED:
+            nested_event = NestedNature.objects.get(pk=record_field.nature_id).event
+            nested_fields = EventField.objects.filter(event=nested_event).first()
+            field_args.append(SchemaGen.gen_schema_from_record(nested_event, nested_fields)())
         return field_args
 
     @staticmethod
