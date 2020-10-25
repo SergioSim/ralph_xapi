@@ -140,6 +140,29 @@ def test_one_simple_field(input_props, expected_props):
         )
 
 
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_simple_field_exluded(input_props, expected_props):
+    """
+    Given a database record of a schema with one simple EventField
+    with excluded property set to true
+    We should generate the corresponding marshmallow schema
+    Without this field
+    """
+    for nature, _ in SIMPLE_TYPES.items():
+        # Create EventField
+        event_field = EventField(**COMMON_PROPS, **input_props, excluded=True, nature=nature)
+        # Generate the Schema
+        schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+
+        class eventname(Schema):
+            pass
+
+        compare_fields(
+            expected=eventname,
+            actual=schema,
+        )
+
+
 @pytest.mark.parametrize("input_props,expected_props,related_value", RELATED_FIELD_TEST)
 def test_one_related_field(input_props, expected_props, related_value):
     """

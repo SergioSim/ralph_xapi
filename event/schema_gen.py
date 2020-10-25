@@ -22,7 +22,7 @@ class SchemaGen:
     @staticmethod
     def put_field(schema_props, record_field):
         """Insert a marshmallow field in schema_props dict"""
-        if not record_field:
+        if not record_field or record_field.excluded:
             return
         schema_props[record_field.name] = SchemaGen.create_field(record_field)
 
