@@ -1,6 +1,6 @@
 """Test for SchemaGen"""
 import pytest
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validates
 
 from ..models import (
     DictNature,
@@ -25,6 +25,7 @@ URL_NATURE0 = UrlNature(id=1, relative=False)
 URL_NATURE1 = UrlNature(id=2, relative=True)
 IPV4_NATURE0 = IPv4Nature(id=1, exploded=False)
 IPV4_NATURE1 = IPv4Nature(id=2, exploded=True)
+NESTED_NATURE = NestedNature(id=1, event=EVENT1)
 
 
 @pytest.fixture()
@@ -40,6 +41,7 @@ def django_db_setup(django_db_setup, django_db_blocker):
         URL_NATURE1.save()
         IPV4_NATURE0.save()
         IPV4_NATURE1.save()
+        NESTED_NATURE.save()
 
 
 # test data
@@ -245,11 +247,10 @@ def test_one_dict_field_with_simple_field(input_props, expected_props):
 @pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
 def test_one_nested_field_with_empty(input_props, expected_props):
     """
-    Given a database record of a schema with one Dict EventField
+    Given a database record of a schema with one Nested EventField
     We should generate the corresponding marshmallow schema
     """
     # Create EventField
-    NestedNature(id=1, event=EVENT1).save()
     event_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.NESTED, nature_id=1)
     # Generate the Schema
     schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
@@ -265,10 +266,9 @@ def test_one_nested_field_with_empty(input_props, expected_props):
 @pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
 def test_one_nested_field_with_simple_field(input_props, expected_props):
     """
-    Given a database record of a schema with one Dict EventField
+    Given a database record of a schema with one Nested EventField
     We should generate the corresponding marshmallow schema
     """
-    NestedNature(id=1, event=EVENT1).save()
     EventField.objects.filter(event_id=1).delete()
     for field_props, expected_field_props in SIMPLE_FIELD_TEST:
         for nature, field_type in SIMPLE_TYPES.items():
@@ -285,8 +285,38 @@ def test_one_nested_field_with_simple_field(input_props, expected_props):
             class eventname(Schema):
                 field = fields.Nested(eventname1(), **expected_props)
 
-            compare_fields(
-                expected=eventname,
-                actual=schema,
-            )
+            compare_fields(expected=eventname, actual=schema)
             event_field.delete()
+
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_nested_field_with_related_field(input_props, expected_props):
+    """
+    Given a database record of a schema with one Nested EventField
+    Which contains an Event with one related field
+    We should generate the corresponding marshmallow schema
+    """
+    EventField.objects.filter(event_id=1).delete()
+    for field_props, expected_field_props, related_value in RELATED_FIELD_TEST:
+        for nature, field_type_tuple in SIMPLE_RELATED_TYPES_WITH_KEY.items():
+            # Create EventField in EVENT1
+            event_field = EventField(**COMMON_PROPS2, **field_props, nature=nature)
+            event_field.save()
+            # Generate the Schema of EVENT nesting EVENT1
+            nested_field = EventField(
+                **COMMON_PROPS, **input_props, nature=NATURES.NESTED, nature_id=1
+            )
+            # Generate the Schema
+            schema = SchemaGen.gen_schema_from_record(EVENT, nested_field)
+            expected_field_props = expected_field_props.copy()
+            expected_field_props[field_type_tuple[1]] = related_value
+
+            class eventname1(Schema):
+                field2 = field_type_tuple[0](**expected_field_props)
+
+            class eventname(Schema):
+                field = fields.Nested(eventname1(), **expected_props)
+
+            compare_fields(expected=eventname, actual=schema)
+            event_field.delete()
+            del expected_field_props[field_type_tuple[1]]
