@@ -1,6 +1,6 @@
 """Test for SchemaGen"""
 import pytest
-from marshmallow import Schema, fields, validates
+from marshmallow import Schema, fields, validates,ValidationError
 
 from ..models import (
     DictNature,
@@ -149,18 +149,53 @@ def test_one_simple_field_exluded(input_props, expected_props):
     Without this field
     """
     for nature, _ in SIMPLE_TYPES.items():
-        # Create EventField
+        # Create excluded EventField
         event_field = EventField(**COMMON_PROPS, **input_props, excluded=True, nature=nature)
+        # Generate the Schema
+        schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
+        # Expected Schema
+        class eventname(Schema):
+            pass
+
+        compare_fields(expected=eventname, actual=schema)
+
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_one_string_field_with_validate(input_props, expected_props):
+    """
+    Given a database record of a schema with one simple EventField
+    with validate property set
+    We should generate the corresponding marshmallow schema
+    With the corresponding validation function
+    """
+    for nature, field_type in {NATURES.STRING: fields.String}.items():
+        # Create EventField
+        event_field = EventField(
+            **COMMON_PROPS,
+            **input_props,
+            validate="""if field == 'raise':
+                raise ValidationError('Error')""",
+        nature=nature)
         # Generate the Schema
         schema = SchemaGen.gen_schema_from_record(EVENT, event_field)
 
         class eventname(Schema):
-            pass
+            field = field_type(**expected_props)
 
-        compare_fields(
-            expected=eventname,
-            actual=schema,
-        )
+            @validates("field")
+            def validate_field(self, field):
+                if field == 'raise':
+                    raise ValidationError('Error')
+
+        compare_fields(expected=eventname, actual=schema)
+        for schema_obj in [eventname(), schema()]:
+            with pytest.raises(ValidationError) as err:
+                schema_obj.load({"field": "raise"})
+            assert err.value.messages["field"][0] == "Error"
+            try:
+                schema_obj.load({"field": "dont raise"})
+            except ValidationError:
+                pytest.fail("Schould not raise exception!")
 
 
 @pytest.mark.parametrize("input_props,expected_props,related_value", RELATED_FIELD_TEST)
