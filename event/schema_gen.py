@@ -4,7 +4,7 @@ from ast import (FunctionDef, arg, arguments, parse, Module,
 import sys
 from types import FunctionType, CodeType
 
-from marshmallow import Schema
+from marshmallow import Schema, validates_schema
 from marshmallow.decorators import set_hook
 
 from .models import DictNature, EventField, ListNature, NestedNature
@@ -17,10 +17,11 @@ class SchemaGen:
     """Creates Marshmallow schemas from Database records"""
 
     @staticmethod
-    def gen_schema_from_record(record, record_field):
+    def gen_schema_from_record(record, record_field, schema_validate=None):
         """Returns single marshmallow schema for one record"""
         schema_props = {}
         SchemaGen.put_field(schema_props, record_field)
+        SchemaGen.put_schema_validation(schema_props, schema_validate)
         schema_name = "".join([e for e in record.name if e.isalnum()])
         return type(schema_name, (Schema,), schema_props)
 
@@ -33,6 +34,32 @@ class SchemaGen:
         schema_props[name] = SchemaGen.create_field(record_field)
         if record_field.validate:
             schema_props[f"validate_{name}"] = SchemaGen.create_validate_func(record_field)
+
+    @staticmethod
+    def put_schema_validation(schema_props, schema_validate):
+        """Insert a schema_validation function in schema_props dict"""
+        if not schema_validate or not schema_validate.validate:
+            return
+        name = schema_validate.name
+        function_ast = FunctionDef(
+            name=f"validate_schema_{name}",
+            args=arguments(
+                args=[arg(arg="self"), arg(arg="data")], kwarg=arg(arg="kwargs"),
+                posonlyargs=[], kwonlyargs=[], kw_defaults=[], defaults=[]
+            ),
+            body=parse(schema_validate.validate).body,
+            decorator_list=[],
+        )
+        func_code = SchemaGen.get_func_code_from_ast(function_ast)
+        schema_props[f"validate_schema_{name}"] = validates_schema(FunctionType(func_code, func_scope))
+
+    @staticmethod
+    def get_func_code_from_ast(function_ast):
+        """Returns func_code object corresponding to function_ast"""
+        module_ast = Module(body=[function_ast], type_ignores=[])
+        fix_missing_locations(module_ast)
+        module_code = compile(module_ast, "<not_a_file>", "exec")
+        return [c for c in module_code.co_consts if isinstance(c, CodeType)][0]
 
     @staticmethod
     def create_field(record_field):
@@ -55,10 +82,7 @@ class SchemaGen:
             body=parse(record_field.validate).body,
             decorator_list=[],
         )
-        module_ast = Module(body=[function_ast], type_ignores=[])
-        fix_missing_locations(module_ast)
-        module_code = compile(module_ast, "<not_a_file>", "exec")
-        func_code = [c for c in module_code.co_consts if isinstance(c, CodeType)][0]
+        func_code = SchemaGen.get_func_code_from_ast(function_ast)
         return set_hook(FunctionType(func_code, func_scope), "validates", field_name=name)
 
     @staticmethod

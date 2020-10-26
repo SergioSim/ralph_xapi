@@ -12,7 +12,6 @@ class Event(models.Model):
     name = models.CharField(max_length=200, unique=True, blank=False)
     description = models.TextField()
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
-    validate_schema = models.TextField(null=True, blank=True)
     created = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
@@ -115,3 +114,45 @@ class IPv4Nature(models.Model):
     """Represents marshmallow.fields.IPv4 class"""
 
     exploded = models.BooleanField(default=True)
+
+class SchemaValidate(models.Model):
+    """Represents the schema_validate function"""
+    event = models.OneToOneField(Event, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    event_fields = models.ManyToManyField(EventField)
+    validate = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.id}-SchemaValidate"
+
+class XAPIField(models.Model):
+    """Represents the xAPI field"""
+
+    class Meta:
+        """Indexes"""
+
+        indexes = [
+            models.Index(fields=["event", "parent", "name"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["event", "parent", "name"], name="unique_xapi_name"),
+        ]
+
+    class XAPINature(models.TextChoices):
+        """Event Nature class"""
+
+        OBJECT = "Object", "Object"
+        LIST = "List", "List"
+        STRING = "String", "String"
+        NUMBER = "Number", "Number"
+        BOOLEAN = "Boolean", "Boolean"
+        NULL = "Null", "Null"
+
+    event = models.OneToOneField(Event, on_delete=models.CASCADE)
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=200)
+    description = models.TextField()
+    nature = models.CharField(max_length=10, choices=XAPINature.choices)
+    event_fields = models.ManyToManyField(EventField)
+    transform = models.TextField(null=True, blank=True)
+    default = models.CharField(max_length=200, null=True, blank=True)
