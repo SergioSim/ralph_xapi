@@ -7,7 +7,7 @@ from types import FunctionType, CodeType
 from marshmallow import Schema, validates_schema
 from marshmallow.decorators import set_hook
 
-from .models import DictNature, EventField, ListNature, NestedNature
+from .models import DictNature, EventField, ListNature, NestedNature, SchemaValidate
 from .validation_scopes import func_scope
 
 NATURE = EventField.EventNature
@@ -17,13 +17,27 @@ class SchemaGen:
     """Creates Marshmallow schemas from Database records"""
 
     @staticmethod
-    def gen_schema_from_record(record, record_field, schema_validate=None):
+    def gen_schema_from_record(record):
         """Returns single marshmallow schema for one record"""
         schema_props = {}
-        SchemaGen.put_field(schema_props, record_field)
-        SchemaGen.put_schema_validation(schema_props, schema_validate)
+        SchemaGen.put_fields(schema_props, record)
+        SchemaGen.put_schema_validations(schema_props, record)
         schema_name = "".join([e for e in record.name if e.isalnum()])
         return type(schema_name, (Schema,), schema_props)
+
+    @staticmethod
+    def put_fields(schema_props, record):
+        """Querry for all related EventFields and put them in schema_pops"""
+        record_fields = EventField.objects.filter(event=record)
+        for record_field in record_fields:
+            SchemaGen.put_field(schema_props, record_field)
+
+    @staticmethod
+    def put_schema_validations(schema_props, record):
+        """Querry for all related SchemaValidate and put them in schema_pops"""
+        schema_validates = SchemaValidate.objects.filter(event=record)
+        for schema_validate in schema_validates:
+            SchemaGen.put_schema_validation(schema_props, schema_validate)
 
     @staticmethod
     def put_field(schema_props, record_field):
@@ -104,8 +118,7 @@ class SchemaGen:
             field_args.append(SchemaGen.create_field(nested_field))
         if record_field.nature == NATURE.NESTED:
             nested_event = NestedNature.objects.get(pk=record_field.nature_id).event
-            nested_fields = EventField.objects.filter(event=nested_event).first()
-            field_args.append(SchemaGen.gen_schema_from_record(nested_event, nested_fields)())
+            field_args.append(SchemaGen.gen_schema_from_record(nested_event)())
         return field_args
 
     @staticmethod
