@@ -583,7 +583,7 @@ def test_multiple_string_field_with_schema_validation(_db, input_props, expected
     # Create SchemaValidate
     schema_validate = _db.create_schema_validate(name="field_1_2")
     schema_validate.validate = """if field_1 == 'raise':
-        raise ValidationError('Error')
+    raise ValidationError('Error')
 if field_2 == 'raise':
     raise ValidationError('Error')
 try:
@@ -671,7 +671,7 @@ def test_nested_string_field_with_schema_validation(_db, input_props, expected_p
     # Create SchemaValidate
     schema_validate = _db.create_schema_validate(name="nested_field")
     schema_validate.validate = """if field_5 == 'raise':
-        raise ValidationError('Error')
+    raise ValidationError('Error')
 if nested['field_2'] == 'raise':
     raise ValidationError('Error Nested')"""
     schema_validate.save()
@@ -817,37 +817,110 @@ def test_schemagen_get_related_field_names_and_paths_validate(_db):
     ]
     assert names == {"field_1", "field_2", "nested", "nested_2"}
 
-# @pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
-# def test_conversion_with_one_string_field_and_empty_xapi_field(_db, input_props, expected_props):
-#     """
-#     Given a database record of a schema
-#     With one not related XAPIField
-#     The generated marshmallow schema should dump the default value
-#     of the XAPIField
-#     """
-#     # Create EventField / XAPI Field
-#     _db.create_field(name="field_1", **input_props)
-#     _db.create_xapi_field(name="x_field")
-#     # Generate the Schema
-#     schema = SchemaGen.gen_schema_from_record(EVENT)
-#     ### START EXPECTED EVENT SCHEMA
-#     def func():
-#         return None
 
-#     xapi_fields = [{"path": [["x_field"]], "paths": [[]]}]
-#     class Eventname(Schema):
-#         """desc"""
-#         field_1 = fields.String(**expected_props)
+def test_get_transformer_output_path(_db):
+    """
+    The get_transformer_output_path function should return the right position
+    """
+    # Not nested
+    output_path = []
+    field_1 = _db.create_xapi_field(name="field_1")
+    SchemaGen.get_transformer_output_path(field_1, output_path)
+    assert output_path == ["field_1"]
+    # One nested
+    output_path = []
+    field_2 = _db.create_xapi_field(name="field_2", parent=field_1)
+    SchemaGen.get_transformer_output_path(field_2, output_path)
+    assert output_path == ["field_1", "field_2"]
+    # One nested
+    output_path = []
+    field_3 = _db.create_xapi_field(name="field_3", parent=field_1)
+    SchemaGen.get_transformer_output_path(field_3, output_path)
+    assert output_path == ["field_1", "field_3"]
+    # Two nested
+    output_path = []
+    field_3 = _db.create_xapi_field(name="field_3", parent=field_2)
+    SchemaGen.get_transformer_output_path(field_3, output_path)
+    assert output_path == ["field_1", "field_2", "field_3"]
 
-#         @post_dump
-#         def transform_to_xapi(self, data, **kwargs):
-#             transformed = {}
-#             for xapi_field in xapi_fields:
-#                 kwargs_dict = {}
-#                 for path in xapi_field["paths"]:
-#                     nested_set(kwargs_dict, path, nested_get(data, path))
-#                 nested_set(transformed, xapi_field["path"], func(**kwargs_dict))
-#             return transformed
 
-#     ### END EXPECTED EVENT SCHEMA
-#     compare_fields(expected=Eventname, actual=schema)
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_conversion_with_one_string_field_and_empty_xapi_field(_db, input_props, expected_props):
+    """
+    Given a database record of a schema
+    With one not related XAPIField
+    The generated marshmallow schema should dump the default value
+    of the XAPIField
+    """
+    # Create EventField / XAPI Field
+    _db.create_field(name="field_1", **input_props)
+    _db.create_xapi_field(name="x_field")
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(EVENT)
+    ### START EXPECTED EVENT SCHEMA
+
+    transformers = [
+        {"input_paths": [], "output_path": ["x_field"], "function": None, "default": None}
+    ]
+    class Eventname(Schema):
+        """desc"""
+        field_1 = fields.String(**expected_props)
+
+        @post_dump
+        def transform_to_xapi(self, data, **kwargs):
+            output = {}
+            for transform in transformers:
+                if not transform["function"]:
+                    nested_set(output, transform["output_path"], transform["default"])
+                    continue    
+                kwargs_dict = {}
+                for input_path in transform["input_paths"]:
+                    nested_set(kwargs_dict, input_path, nested_get(data, input_path))
+                nested_set(output, transform["output_path"], transform["function"](**kwargs_dict))
+            return output
+
+    ### END EXPECTED EVENT SCHEMA
+    compare_fields(expected=Eventname, actual=schema)
+    example_event = {"field_1": "some string"}
+    assert schema().dump(schema().load(example_event)) == {"x_field": None}
+
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_conversion_with_one_string_field_and_xapi_field(_db, input_props, expected_props):
+    """
+    Given a database record of a schema
+    With one related XAPIField
+    The generated marshmallow schema should dump the output of the
+    XAPIField transfrom function
+    """
+    # Create EventField / XAPI Field
+    event_field = _db.create_field(name="field_1", **input_props)
+    xapi_field = _db.create_xapi_field(name="x_field")
+    xapi_field.event_fields.add(event_field)
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(EVENT)
+    # When xapi_field has a relation but no transform method -  keep default value
+    example_event = {"field_1": "some string"}
+    assert schema().dump(schema().load(example_event)) == {"x_field": None}
+    # When we set the xapi_field default value it should change the final output
+    xapi_field.default = "Not None!"
+    xapi_field.save()
+    schema = SchemaGen.gen_schema_from_record(EVENT)
+    assert schema().dump(schema().load(example_event)) == {"x_field": "Not None!"}
+    # Add transfrom method
+    xapi_field.transform="""if field_1 == "upper":
+    return field_1.upper()
+elif field_1 == "repeat":
+    return len(field_1 * 3)
+else:
+    return {"error": 1, "list": [1,2,"3"], "nest":{"ed": "test"}}
+"""
+    xapi_field.save()
+    schema = SchemaGen.gen_schema_from_record(EVENT)
+    assert schema().dump(schema().load(example_event)) == {"x_field": {
+        "error": 1, "list": [1, 2, "3"], "nest": {"ed": "test"}}
+    }
+    example_event = {"field_1": "repeat"}
+    assert schema().dump(schema().load(example_event)) == {"x_field": 18}
+    example_event = {"field_1": "upper"}
+    assert schema().dump(schema().load(example_event)) == {"x_field": "UPPER"}

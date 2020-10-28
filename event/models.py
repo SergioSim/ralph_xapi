@@ -119,7 +119,7 @@ class IPv4Nature(models.Model):
 
 class SchemaValidate(models.Model):
     """Represents the schema_validate function"""
-    event = models.OneToOneField(Event, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     event_fields = models.ManyToManyField(EventField)
     validate = models.TextField(null=True, blank=True)
@@ -150,7 +150,7 @@ class XAPIField(models.Model):
         BOOLEAN = "Boolean", "Boolean"
         NULL = "Null", "Null"
 
-    event = models.OneToOneField(Event, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE)
     parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=200)
     description = models.TextField()

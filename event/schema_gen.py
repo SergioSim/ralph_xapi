@@ -4,10 +4,10 @@ from ast import (FunctionDef, arg, arguments, parse, Module,
 import sys
 from types import FunctionType, CodeType
 
-from marshmallow import Schema, validates_schema
+from marshmallow import Schema, validates_schema, post_dump
 from marshmallow.decorators import set_hook
 
-from .models import DictNature, EventField, ListNature, NestedNature, SchemaValidate
+from .models import DictNature, EventField, ListNature, NestedNature, SchemaValidate, XAPIField
 from .validation_scopes import func_scope
 
 NATURE = EventField.EventNature
@@ -33,22 +33,35 @@ class SchemaGen:
         schema_props = {"__doc__": record.description}
         SchemaGen.put_fields(schema_props, record)
         SchemaGen.put_schema_validations(schema_props, record)
+        SchemaGen.put_post_dump_function(schema_props, record)
         schema_name = "".join([e for e in record.name if e.isalnum()])
         return type(schema_name, (Schema,), schema_props)
 
     @staticmethod
     def put_fields(schema_props, record):
-        """Querry for all related EventFields and put them in schema_pops"""
+        """Querry for related EventFields and put them in schema_pops"""
         record_fields = EventField.objects.filter(event=record)
         for record_field in record_fields:
             SchemaGen.put_field(schema_props, record_field)
 
     @staticmethod
     def put_schema_validations(schema_props, record):
-        """Querry for all related SchemaValidate and put them in schema_pops"""
+        """Querry for related SchemaValidate and put them in schema_pops"""
         schema_validates = SchemaValidate.objects.filter(event=record)
         for schema_validate in schema_validates:
             SchemaGen.put_schema_validation(schema_props, schema_validate)
+
+    @staticmethod
+    def put_post_dump_function(schema_props, record):
+        """Querry for related XAPIFields and put their transform function in post_dump function"""
+        # Extract this in a function get_transformers(record)
+        xapi_fields = XAPIField.objects.filter(event=record)
+        if not xapi_fields:
+            return
+        transformers = []
+        for xapi_field in xapi_fields:
+            transformers.append(SchemaGen.create_xapi_transformer(xapi_field))
+        schema_props["transform_to_xapi"] = post_dump(SchemaGen.create_post_dump(transformers))
 
     @staticmethod
     def put_field(schema_props, record_field):
@@ -77,6 +90,46 @@ class SchemaGen:
             gen_func(**kwargs_dict)
         gen_validate_schema.__name__ = f"validate_schema_{name}"
         schema_props[f"validate_schema_{name}"] = validates_schema(gen_validate_schema)
+
+    @staticmethod
+    def create_xapi_transformer(xapi_field):
+        """Returns a dict with input_paths, output_path, function and default"""
+        field_names, input_paths = SchemaGen.get_related_field_names_and_paths(xapi_field)
+        output_path = SchemaGen.get_transformer_output_path(xapi_field, [])
+        func = None
+        if xapi_field.transform:
+            name = f"xapi_{len(output_path)}_{xapi_field.name}"
+            func = SchemaGen.create_function(name, body=xapi_field.transform, kwargs=field_names)
+        return {
+            "input_paths": input_paths,
+            "output_path": output_path,
+            "function": func,
+            "default": xapi_field.default
+        }
+
+    @staticmethod
+    def get_transformer_output_path(xapi_field, output_path):
+        """Recursively add parents in output_path"""
+        output_path.insert(0, xapi_field.name)
+        if not xapi_field.parent:
+            return output_path
+        return SchemaGen.get_transformer_output_path(xapi_field.parent, output_path)
+
+    @staticmethod
+    def create_post_dump(transformers):
+        """Returns the post dump function parametrized by transformers"""
+        def transform_to_xapi(self, data, **kwargs):
+            output = {}
+            for transform in transformers:
+                if not transform["function"]:
+                    nested_set(output, transform["output_path"], transform["default"])
+                    continue    
+                kwargs_dict = {}
+                for input_path in transform["input_paths"]:
+                    nested_set(kwargs_dict, input_path, nested_get(data, input_path))
+                nested_set(output, transform["output_path"], transform["function"](**kwargs_dict))
+            return output
+        return transform_to_xapi
 
     @staticmethod
     def create_function(name, body, args=None, kwargs=None):
