@@ -12,6 +12,17 @@ from .validation_scopes import func_scope
 
 NATURE = EventField.EventNature
 
+def nested_set(dic, keys, value):
+    """Set the nested dict value by keys array"""
+    for key in keys[:-1]:
+        dic = dic.setdefault(key, {})
+    dic[keys[-1]] = value
+
+def nested_get(dic, keys):
+    """Returns the nested value by keys array"""
+    for key in keys[:-1]:
+        dic = dic[key]
+    return dic[keys[-1]]
 
 class SchemaGen:
     """Creates Marshmallow schemas from Database records"""
@@ -54,18 +65,27 @@ class SchemaGen:
         """Insert a schema_validation function in schema_props dict"""
         if not schema_validate or not schema_validate.validate:
             return
+        paths = SchemaGen.get_events_from_schema(schema_validate)
+        kwargs = SchemaGen.get_kwargs_from_paths(paths)
         name = schema_validate.name
         function_ast = FunctionDef(
             name=f"validate_schema_{name}",
             args=arguments(
-                args=[arg(arg="self"), arg(arg="data")], kwarg=arg(arg="kwargs"),
-                posonlyargs=[], kwonlyargs=[], kw_defaults=[], defaults=[]
+                args=[], posonlyargs=[], kwonlyargs=kwargs, kw_defaults=[None]*len(kwargs),
+                defaults=[]
             ),
             body=parse(schema_validate.validate).body,
             decorator_list=[],
         )
         func_code = SchemaGen.get_func_code_from_ast(function_ast)
-        schema_props[f"validate_schema_{name}"] = validates_schema(FunctionType(func_code, func_scope))
+        gen_func = FunctionType(func_code, func_scope)
+        def gen_validate_schema(self, data, **kwargs):
+            kwargs_dict = {}
+            for path in paths:
+                nested_set(kwargs_dict, path, nested_get(data, path))
+            gen_func(**kwargs_dict)
+        gen_validate_schema.__name__ = f"validate_schema_{name}"
+        schema_props[f"validate_schema_{name}"] = validates_schema(gen_validate_schema)
 
     @staticmethod
     def get_func_code_from_ast(function_ast):
@@ -195,3 +215,12 @@ class SchemaGen:
                 nested_fields = nested_event.eventfield_set.all()
                 SchemaGen.add_field_path(nested_fields, selected_fields, field_paths, depth)
                 del depth[-1]
+
+    @staticmethod
+    def get_kwargs_from_paths(paths):
+        """Returns a dict of ast arg objects representing kwargs"""
+        kw_names = set([x[0] for x in paths])
+        kwargs = []
+        for kw_arg in kw_names:
+            kwargs.append(arg(arg=kw_arg))
+        return kwargs

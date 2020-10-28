@@ -36,7 +36,8 @@ def compare_fields(expected, actual):
             exp_code = value.__code__
             act_code = get_dict(actual)[attr].__code__
             # function name should be equal
-            assert exp_code.co_name == act_code.co_name
+            # exp_code.co_name too strict?
+            assert value.__name__ == get_dict(actual)[attr].__name__
             # function arguments count should be equal
             assert exp_code.co_argcount == act_code.co_argcount
             # function arguments names should be equal

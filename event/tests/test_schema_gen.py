@@ -13,7 +13,7 @@ from ..models import (
     UrlNature,
     SchemaValidate
 )
-from ..schema_gen import SchemaGen
+from ..schema_gen import SchemaGen, nested_set, nested_get
 from .test_outil import compare_fields
 
 pytestmark = pytest.mark.django_db  # pylint: disable=invalid-name
@@ -534,21 +534,28 @@ def test_one_string_field_with_schema_validation(input_props, expected_props):
     event_field.save()
     # Create SchemaValidate
     schema_validate = SchemaValidate(event=EVENT, name="field")
-    schema_validate.validate="""if data['field'] == 'raise':
+    schema_validate.validate="""if field == 'raise':
         raise ValidationError('Error')"""
     schema_validate.save()
     schema_validate.event_fields.add(event_field)
     # Generate the Schema
     schema = SchemaGen.gen_schema_from_record(EVENT)
-     ### START EXPECTED EVENT SCHEMA
+    ### START EXPECTED EVENT SCHEMA
+    paths = [["field"]]
+    def func(field=None):
+        if field == 'raise':
+            raise ValidationError('Error')
+
     class Eventname(Schema):
         """desc"""
         field = fields.String(**expected_props)
 
         @validates_schema
         def validate_schema_field(self, data, **kwargs):
-            if data['field'] == 'raise':
-                raise ValidationError('Error')
+            kwargs_dict = {}
+            for path in paths:
+                nested_set(kwargs_dict, path, nested_get(data, path))
+            func(**kwargs_dict)
 
     ### END EXPECTED EVENT SCHEMA
     compare_fields(expected=Eventname, actual=schema)
