@@ -18,8 +18,8 @@ from .test_outil import compare_fields
 
 pytestmark = pytest.mark.django_db  # pylint: disable=invalid-name
 
-EVENT = Event(id=1, name="eventname", description="desc")
-EVENT1 = Event(id=2, name="eventname1", description="desc")
+EVENT = Event(id=1, name="Eventname", description="desc")
+EVENT1 = Event(id=2, name="Eventname1", description="desc")
 INTEGER_NATURE0 = IntegerNature(id=1, strict=False)
 INTEGER_NATURE1 = IntegerNature(id=2, strict=True)
 URL_NATURE0 = UrlNature(id=1, relative=False)
@@ -91,6 +91,64 @@ RELATED_FIELD_TEST = [
     ({**RELATED_PROPS1, **BOOLEAN_PROPS1}, BOOLEAN_PROPS1, True),
 ]
 
+class DB:
+    """Create/Delete Database records"""
+
+    saved = []
+
+    def create_event(self, name="Eventname2", description="desc", parent=None):
+        """Create on Event record"""
+        event = Event(name=name, description=description, parent=parent)
+        event.save()
+        self.saved.append(event)
+        return event
+
+    def create_field(self, event=EVENT, name="name", **kwargs):
+        """Create one EventField record"""
+        nature = kwargs.get("nature", NATURES.STRING)
+        nature_id = kwargs.get("nature_id", None)
+        required = kwargs.get("required", True)
+        allow_none = kwargs.get("allow_none", False)
+        excluded = kwargs.get("excluded", False)
+        event_field = EventField(
+            event=event,
+            name=name,
+            nature=nature,
+            nature_id=nature_id,
+            required=required,
+            allow_none=allow_none,
+            excluded=excluded,
+            description="desc"
+        )
+        event_field.save()
+        self.saved.append(event_field)
+        return event_field
+
+    def create_schema_validate(self, event=EVENT, name="schema"):
+        """Create one SchemaValidate record"""
+        schema_validate = SchemaValidate(event=event, name=name)
+        schema_validate.save()
+        self.saved.append(schema_validate)
+        return schema_validate
+
+    def create_nested_nature(self, event=EVENT1, exclude=""):
+        """Create one NestedNature record"""
+        nested_nature = NestedNature(event=event, exclude=exclude)
+        nested_nature.save()
+        self.saved.append(nested_nature)
+        return nested_nature
+
+    def delete(self):
+        """Delete all saved records"""
+        for record in self.saved:
+            record.delete()
+
+@pytest.fixture
+def _db():
+    """All Records created with db fixture will be deleted after each test"""
+    db_obj = DB()
+    yield db_obj
+    db_obj.delete()
 
 def test_get_class_from_event_nature():
     """
@@ -159,10 +217,11 @@ def test_one_simple_field_exluded(input_props, expected_props):
         # Generate the Schema
         schema = SchemaGen.gen_schema_from_record(EVENT)
         # Expected Schema
-        class eventname(Schema):
+        class Eventname(Schema):
+            """desc"""
             pass
 
-        compare_fields(expected=eventname, actual=schema)
+        compare_fields(expected=Eventname, actual=schema)
         event_field.delete()
 
 
@@ -211,11 +270,12 @@ def test_one_list_field_with_simple_field(input_props, expected_props):
             schema = SchemaGen.gen_schema_from_record(EVENT)
             ### START EXPECTED EVENT SCHEMA
 
-            class eventname(Schema):
+            class Eventname(Schema):
+                """desc"""
                 field = fields.List(field_type(**expected_props), **list_expected_props)
 
             ### END EXPECTED EVENT SCHEMA
-            compare_fields(expected=eventname, actual=schema)
+            compare_fields(expected=Eventname, actual=schema)
             simple_field.delete()
             list_nature.delete()
             event_field.delete()
@@ -247,11 +307,12 @@ def test_one_list_field_with_related_field(input_props, expected_props, related_
             schema = SchemaGen.gen_schema_from_record(EVENT)
             ### START EXPECTED EVENT SCHEMA
 
-            class eventname(Schema):
+            class Eventname(Schema):
+                """desc"""
                 field = fields.List(field_type_tuple[0](**expected_props), **list_expected_props)
 
             ### END EXPECTED EVENT SCHEMA
-            compare_fields(expected=eventname, actual=schema)
+            compare_fields(expected=Eventname, actual=schema)
             del expected_props[field_type_tuple[1]]
             related_field.delete()
             list_nature.delete()
@@ -289,7 +350,8 @@ def test_one_dict_field_with_simple_field(input_props, expected_props):
                     schema = SchemaGen.gen_schema_from_record(EVENT)
                     ### START EXPECTED EVENT SCHEMA
 
-                    class eventname(Schema):
+                    class Eventname(Schema):
+                        """desc"""
                         field = fields.Dict(
                             keys=key_type(**key_expected_props),
                             values=value_type(**value_expected_props),
@@ -297,7 +359,7 @@ def test_one_dict_field_with_simple_field(input_props, expected_props):
                         )
 
                     ### END EXPECTED EVENT SCHEMA
-                    compare_fields(expected=eventname, actual=schema)
+                    compare_fields(expected=Eventname, actual=schema)
 
                     dict_nature.delete()
                     event_field.delete()
@@ -314,13 +376,15 @@ def test_one_nested_field_with_empty(input_props, expected_props):
     # Generate the Schema
     schema = SchemaGen.gen_schema_from_record(EVENT)
     ### START EXPECTED EVENT SCHEMA
-    class eventname1(Schema):
+    class Eventname1(Schema):
+        """desc"""
         pass
 
-    class eventname(Schema):
-        field = fields.Nested(eventname1(), **expected_props)
+    class Eventname(Schema):
+        """desc"""
+        field = fields.Nested(Eventname1(), **expected_props)
     ### END EXPECTED EVENT SCHEMA
-    compare_fields(expected=eventname, actual=schema)
+    compare_fields(expected=Eventname, actual=schema)
     event_field.delete()
 
 @pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
@@ -340,14 +404,16 @@ def test_one_nested_field_with_simple_field(input_props, expected_props):
             nested_field.save()
             schema = SchemaGen.gen_schema_from_record(EVENT)
             ### START EXPECTED EVENT SCHEMA
-            class eventname1(Schema):
+            class Eventname1(Schema):
+                """desc"""
                 field2 = field_type(**expected_field_props)
 
-            class eventname(Schema):
-                field = fields.Nested(eventname1(), **expected_props)
+            class Eventname(Schema):
+                """desc"""
+                field = fields.Nested(Eventname1(), **expected_props)
 
             ### END EXPECTED EVENT SCHEMA
-            compare_fields(expected=eventname, actual=schema)
+            compare_fields(expected=Eventname, actual=schema)
             event_field.delete()
             nested_field.delete()
 
@@ -375,14 +441,16 @@ def test_one_nested_field_with_related_field(input_props, expected_props):
             expected_field_props = expected_field_props.copy()
             expected_field_props[field_type_tuple[1]] = related_value
             ### START EXPECTED EVENT SCHEMA
-            class eventname1(Schema):
+            class Eventname1(Schema):
+                """desc"""
                 field2 = field_type_tuple[0](**expected_field_props)
 
-            class eventname(Schema):
-                field = fields.Nested(eventname1(), **expected_props)
+            class Eventname(Schema):
+                """desc"""
+                field = fields.Nested(Eventname1(), **expected_props)
 
             ### END EXPECTED EVENT SCHEMA
-            compare_fields(expected=eventname, actual=schema)
+            compare_fields(expected=Eventname, actual=schema)
             del expected_field_props[field_type_tuple[1]]
             event_field.delete()
             nested_field.delete()
@@ -404,7 +472,8 @@ def test_one_string_field_with_validate(input_props, expected_props):
     # Generate the Schema
     schema = SchemaGen.gen_schema_from_record(EVENT)
     ### START EXPECTED EVENT SCHEMA
-    class eventname(Schema):
+    class Eventname(Schema):
+        """desc"""
         field = fields.String(**expected_props)
 
         @validates("field")
@@ -413,8 +482,8 @@ def test_one_string_field_with_validate(input_props, expected_props):
                 raise ValidationError('Error')
 
     ### END EXPECTED EVENT SCHEMA
-    compare_fields(expected=eventname, actual=schema)
-    for schema_obj in [eventname(), schema()]:
+    compare_fields(expected=Eventname, actual=schema)
+    for schema_obj in [Eventname(), schema()]:
         with pytest.raises(ValidationError) as err:
             schema_obj.load({"field": "raise"})
         assert err.value.messages["field"][0] == "Error"
@@ -442,11 +511,12 @@ def test_one_string_field_with_empty_schema_validation(input_props, expected_pro
     # Generate the Schema
     schema = SchemaGen.gen_schema_from_record(EVENT)
      ### START EXPECTED EVENT SCHEMA
-    class eventname(Schema):
+    class Eventname(Schema):
+        """desc"""
         field = fields.String(**expected_props)
 
     ### END EXPECTED EVENT SCHEMA
-    compare_fields(expected=eventname, actual=schema)
+    compare_fields(expected=Eventname, actual=schema)
     event_field.delete()
     schema_validate.delete()
 
@@ -471,7 +541,8 @@ def test_one_string_field_with_schema_validation(input_props, expected_props):
     # Generate the Schema
     schema = SchemaGen.gen_schema_from_record(EVENT)
      ### START EXPECTED EVENT SCHEMA
-    class eventname(Schema):
+    class Eventname(Schema):
+        """desc"""
         field = fields.String(**expected_props)
 
         @validates_schema
@@ -480,8 +551,8 @@ def test_one_string_field_with_schema_validation(input_props, expected_props):
                 raise ValidationError('Error')
 
     ### END EXPECTED EVENT SCHEMA
-    compare_fields(expected=eventname, actual=schema)
-    for schema_obj in [eventname(), schema()]:
+    compare_fields(expected=Eventname, actual=schema)
+    for schema_obj in [Eventname(), schema()]:
         with pytest.raises(ValidationError) as err:
             schema_obj.load({"field": "raise"})
         assert err.value.messages['_schema'][0] == "Error"
@@ -491,3 +562,66 @@ def test_one_string_field_with_schema_validation(input_props, expected_props):
             pytest.fail("Schould not raise exception!")
     schema_validate.delete()
     event_field.delete()
+
+
+def test_schemagen_get_events_from_schema_validate(_db):
+    """
+    SchemaGen.get_events_from_schema should return
+    an array of arrays representing the access paths for
+    each related event
+    """
+    # Create EventField
+    event_field1 = _db.create_field(name="field_1")
+    # Create SchemaValidate
+    schema_validate = _db.create_schema_validate()
+    schema_validate.event_fields.add(event_field1)
+    events_paths = SchemaGen.get_events_from_schema(schema_validate)
+    assert events_paths == [["field_1"]]
+    # Add another event_field to event (Without adding it to the SchemaValidate)
+    _db.create_field(name="field_not_validated")
+    events_paths = SchemaGen.get_events_from_schema(schema_validate)
+    assert events_paths == [["field_1"]]
+    # Add another event_field to event (And adding it to the SchemaValidate)
+    event_field2 = _db.create_field(name="field_2")
+    schema_validate.event_fields.add(event_field2)
+    events_paths = SchemaGen.get_events_from_schema(schema_validate)
+    assert events_paths == [["field_1"], ["field_2"]]
+    # Create EventFields in EVENT1
+    event_field3 = _db.create_field(name="field_3", event=EVENT1)
+    _db.create_field(name="field_4", event=EVENT1)
+    # Generate the Schema of EVENT nesting EVENT1
+    _db.create_field(name="nested", nature=NATURES.NESTED, nature_id=1)
+    schema_validate.event_fields.add(event_field3)
+    events_paths = SchemaGen.get_events_from_schema(schema_validate)
+    assert events_paths == [["field_1"], ["field_2"], ["nested", "field_3"]]
+    # Create Event 2 with 3 fields
+    event2 = _db.create_event()
+    event_field5 =_db.create_field(event=event2, name="field_5")
+    event_field6 = _db.create_field(event=event2, name="field_6")
+    _db.create_field(event=event2, name="field_7")
+    # Create Event 3 with 2 fields
+    event3 = _db.create_event(name="EventName3")
+    event_field8 =_db.create_field(event=event3, name="field_8")
+    _db.create_field(event=event3, name="field_9")
+    # Add a nested field in event 2 nesting event 3
+    nested_nature3 = _db.create_nested_nature(event=event3)
+    _db.create_field(event=event2, name="nest", nature=NATURES.NESTED, nature_id=nested_nature3.id)
+    # Add a nested field in event 1 nesting event 2
+    nested_nature2 = _db.create_nested_nature(event=event2)
+    _db.create_field(name="nested_2", nature=NATURES.NESTED, nature_id=nested_nature2.id)
+    # events_path should not change as we haven't added evetns
+    events_paths = SchemaGen.get_events_from_schema(schema_validate)
+    assert events_paths == [["field_1"], ["field_2"], ["nested", "field_3"]]
+    # Add fields to schema_validate
+    schema_validate.event_fields.add(event_field8)
+    schema_validate.event_fields.add(event_field6)
+    schema_validate.event_fields.add(event_field5)
+    events_paths = SchemaGen.get_events_from_schema(schema_validate)
+    assert events_paths == [
+        ["field_1"],
+        ["field_2"],
+        ["nested", "field_3"],
+        ["nested_2", "field_5"],
+        ["nested_2", "field_6"],
+        ["nested_2", "nest", "field_8"],
+    ]

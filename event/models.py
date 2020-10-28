@@ -66,7 +66,9 @@ class EventField(models.Model):
     excluded = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.event}-{self.name}-{self.nature}-{self.nature_id}"
+        return (f"EventField[event={self.event}, name={self.name}, "
+                f"nature={self.nature}, nature_id={self.nature_id}]"
+        )
 
 
 # Polymorphic relationship may introduce performance issues, can we do better?

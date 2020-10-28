@@ -19,7 +19,7 @@ class SchemaGen:
     @staticmethod
     def gen_schema_from_record(record):
         """Returns single marshmallow schema for one record"""
-        schema_props = {}
+        schema_props = {"__doc__": record.description}
         SchemaGen.put_fields(schema_props, record)
         SchemaGen.put_schema_validations(schema_props, record)
         schema_name = "".join([e for e in record.name if e.isalnum()])
@@ -166,3 +166,32 @@ class SchemaGen:
             field_props["keys"] = SchemaGen.create_field(nature.keys)
         if nature and nature.values:
             field_props["values"] = SchemaGen.create_field(nature.values)
+
+    @staticmethod
+    def get_events_from_schema(schema_validate):
+        """Returns a list of list representing the paths for relative events"""
+        field_paths = []
+        selected_fields = schema_validate.event_fields.all()
+        event_fields = schema_validate.event.eventfield_set.all()
+        SchemaGen.add_field_path(event_fields, selected_fields, field_paths, [])
+        # field_paths.sort(key=lambda k: (len(k), "".join(k)))
+        return field_paths
+
+    @staticmethod
+    def add_field_path(event_fields, selected_fields, field_paths, depth=None):
+        """Adds recursively the absolute paths for the events"""
+        if not depth:
+            depth = []
+        for event_field in event_fields:
+            # print("EF:", event_field)
+            if event_field in selected_fields:
+                field_paths.append(depth + [event_field.name])
+                selected_fields = selected_fields.exclude(id=event_field.id)
+                if not selected_fields:
+                    return
+            if event_field.nature == NATURE.NESTED:
+                depth.append(event_field.name)
+                nested_event = NestedNature.objects.get(pk=event_field.nature_id).event
+                nested_fields = nested_event.eventfield_set.all()
+                SchemaGen.add_field_path(nested_fields, selected_fields, field_paths, depth)
+                del depth[-1]
