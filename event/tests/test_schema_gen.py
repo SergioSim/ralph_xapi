@@ -103,7 +103,7 @@ class DB:
         self.saved.append(event)
         return event
 
-    def create_field(self, event=EVENT, name="name", **kwargs):
+    def create_field(self, event=EVENT, name="field", **kwargs):
         """Create one EventField record"""
         nature = kwargs.get("nature", NATURES.STRING)
         nature_id = kwargs.get("nature_id", None)
@@ -141,7 +141,8 @@ class DB:
     def delete(self):
         """Delete all saved records"""
         for record in self.saved:
-            record.delete()
+            if record.id:
+                record.delete()
 
 @pytest.fixture
 def _db():
@@ -522,7 +523,7 @@ def test_one_string_field_with_empty_schema_validation(input_props, expected_pro
 
 
 @pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
-def test_one_string_field_with_schema_validation(input_props, expected_props):
+def test_one_string_field_with_schema_validation(_db, input_props, expected_props):
     """
     Given a database record of a schema with one String EventField
     With a related SchemaValidate record
@@ -530,11 +531,10 @@ def test_one_string_field_with_schema_validation(input_props, expected_props):
     With the corresponding schema_validate function
     """
      # Create EventField
-    event_field = EventField(**COMMON_PROPS, **input_props, nature=NATURES.STRING)
-    event_field.save()
+    event_field = _db.create_field(**input_props, nature=NATURES.STRING)
     # Create SchemaValidate
-    schema_validate = SchemaValidate(event=EVENT, name="field")
-    schema_validate.validate="""if field == 'raise':
+    schema_validate = _db.create_schema_validate(name="one_field")
+    schema_validate.validate = """if field == 'raise':
         raise ValidationError('Error')"""
     schema_validate.save()
     schema_validate.event_fields.add(event_field)
@@ -551,7 +551,7 @@ def test_one_string_field_with_schema_validation(input_props, expected_props):
         field = fields.String(**expected_props)
 
         @validates_schema
-        def validate_schema_field(self, data, **kwargs):
+        def validate_schema_one_field(self, data, **kwargs):
             kwargs_dict = {}
             for path in paths:
                 nested_set(kwargs_dict, path, nested_get(data, path))
@@ -569,6 +569,187 @@ def test_one_string_field_with_schema_validation(input_props, expected_props):
             pytest.fail("Schould not raise exception!")
     schema_validate.delete()
     event_field.delete()
+
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_multiple_string_field_with_schema_validation(_db, input_props, expected_props):
+    """
+    Given a database record of a schema with multiple String EventFields
+    With a related SchemaValidate record
+    We should generate the corresponding marshmallow schema
+    With the corresponding schema_validate function
+    """
+    # Create EventField
+    event_field = _db.create_field(name="field_1", **input_props)
+    event_field1 = _db.create_field(name="field_2", **input_props)
+    event_field2 = _db.create_field(name="field_3", **input_props)
+    # Create SchemaValidate
+    schema_validate = _db.create_schema_validate(name="field_1_2")
+    schema_validate.validate = """if field_1 == 'raise':
+        raise ValidationError('Error')
+if field_2 == 'raise':
+    raise ValidationError('Error')
+try:
+    field_3
+except NameError:
+    pass # OK
+else:
+    raise ValidationError('field_3 is defined!')
+"""
+    schema_validate.save()
+    schema_validate.event_fields.add(event_field)
+    schema_validate.event_fields.add(event_field1)
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(EVENT)
+    ### START EXPECTED EVENT SCHEMA
+    paths = [["field_1"], ["field_2"]]
+    def func(field_1=None, field_2=None):
+        if field_1 == 'raise':
+            raise ValidationError('Error')
+        if field_2 == 'raise':
+            raise ValidationError('Error')
+        try:
+            field_3
+        except NameError:
+            pass # OK
+        else:
+            raise ValidationError('field_3 is defined!')
+
+    class Eventname(Schema):
+        """desc"""
+        field_1 = fields.String(**expected_props)
+        field_2 = fields.String(**expected_props)
+        field_3 = fields.String(**expected_props)
+
+        @validates_schema
+        def validate_schema_field_1_2(self, data, **kwargs):
+            kwargs_dict = {}
+            for path in paths:
+                nested_set(kwargs_dict, path, nested_get(data, path))
+            func(**kwargs_dict)
+
+    ### END EXPECTED EVENT SCHEMA
+    compare_fields(expected=Eventname, actual=schema)
+    for schema_obj in [Eventname(), schema()]:
+        with pytest.raises(ValidationError) as err:
+            schema_obj.load({"field_1": "raise", "field_2": "not-raise", "field_3": "raise"})
+        assert err.value.messages['_schema'][0] == "Error"
+        with pytest.raises(ValidationError) as err:
+            schema_obj.load({"field_1": "not-raise", "field_2": "raise", "field_3": "raise"})
+        assert err.value.messages['_schema'][0] == "Error"
+        try:
+            schema_obj.load({"field_1": "not-raise", "field_2": "not-raise", "field_3": "raise"})
+        except ValidationError:
+            pytest.fail("Schould not raise exception!")
+    # Now we add field_3 to our validation function
+    schema_validate.event_fields.add(event_field2)
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(EVENT)
+    with pytest.raises(ValidationError) as err:
+        schema().load({"field_1": "not-raise", "field_2": "not-raise", "field_3": "raise"})
+    assert err.value.messages['_schema'][0] == "field_3 is defined!"
+
+
+
+@pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+def test_nested_string_field_with_schema_validation(_db, input_props, expected_props):
+    """
+    Given a database record of a schema with multiple nested String EventFields
+    With a related SchemaValidate record
+    We should generate the corresponding marshmallow schema
+    With the corresponding schema_validate function
+    """
+    str_input_props = {**input_props, **{"nature": NATURES.STRING}}
+    nest_input_props = {**input_props, **{"nature": NATURES.NESTED, "nature_id": 1}}
+    # Create EventFields in EVENT1
+    _db.create_field(event=EVENT1, name="field_1", **str_input_props)
+    event_field2 = _db.create_field(event=EVENT1, name="field_2", **str_input_props)
+    _db.create_field(event=EVENT1, name="field_3", **str_input_props)
+    # Create EventFields in EVENT
+    _db.create_field(event=EVENT, name="field_4", **str_input_props)
+    event_field5 = _db.create_field(event=EVENT, name="field_5", **str_input_props)
+    _db.create_field(event=EVENT, name="field_6", **str_input_props)
+    # Create Nested Event Field
+    _db.create_field(event=EVENT, name="nested", **nest_input_props)
+    # Create SchemaValidate
+    schema_validate = _db.create_schema_validate(name="nested_field")
+    schema_validate.validate = """if field_5 == 'raise':
+        raise ValidationError('Error')
+if nested['field_2'] == 'raise':
+    raise ValidationError('Error Nested')"""
+    schema_validate.save()
+    schema_validate.event_fields.add(event_field2)
+    schema_validate.event_fields.add(event_field5)
+    # Generate the Schema
+    schema = SchemaGen.gen_schema_from_record(EVENT)
+    ### START EXPECTED EVENT SCHEMA
+    paths = [["field_5"], ['nested', 'field_2']]
+    def func(field_5=None, nested=None):
+        if field_5 == 'raise':
+            raise ValidationError('Error')
+        if nested['field_2'] == 'raise':
+            raise ValidationError('Error Nested')
+
+    class Eventname1(Schema):
+        """desc"""
+        field_1 = fields.String(**expected_props)
+        field_2 = fields.String(**expected_props)
+        field_3 = fields.String(**expected_props)
+
+    class Eventname(Schema):
+        """desc"""
+        field_4 = fields.String(**expected_props)
+        field_5 = fields.String(**expected_props)
+        field_6 = fields.String(**expected_props)
+        nested = fields.Nested(Eventname1(), **expected_props)
+
+        @validates_schema
+        def validate_schema_nested_field(self, data, **kwargs):
+            kwargs_dict = {}
+            for path in paths:
+                nested_set(kwargs_dict, path, nested_get(data, path))
+            func(**kwargs_dict)
+
+    ### END EXPECTED EVENT SCHEMA
+    compare_fields(expected=Eventname, actual=schema)
+    for schema_obj in [Eventname(), schema()]:
+        with pytest.raises(ValidationError) as err:
+            schema_obj.load({
+                "field_4": "not-raise",
+                "field_5": "not-raise",
+                "field_6": "not-raise",
+                "nested": {
+                    "field_1": "not-raise",
+                    "field_2": "raise",
+                    "field_3": "not-raise",
+                }
+            })
+        assert err.value.messages['_schema'][0] == "Error Nested"
+        with pytest.raises(ValidationError) as err:
+            schema_obj.load({
+                "field_4": "not-raise",
+                "field_5": "raise",
+                "field_6": "not-raise",
+                "nested": {
+                    "field_1": "not-raise",
+                    "field_2": "not-raise",
+                    "field_3": "not-raise",
+                }
+            })
+        assert err.value.messages['_schema'][0] == "Error"
+        try:
+            schema_obj.load({
+                "field_4": "not-raise",
+                "field_5": "not-raise",
+                "field_6": "not-raise",
+                "nested": {
+                    "field_1": "not-raise",
+                    "field_2": "not-raise",
+                    "field_3": "not-raise",
+                }
+            })
+        except ValidationError:
+            pytest.fail("Schould not raise exception!")
 
 
 def test_schemagen_get_events_from_schema_validate(_db):
