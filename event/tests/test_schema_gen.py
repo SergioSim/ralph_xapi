@@ -1,6 +1,6 @@
 """Test for SchemaGen"""
 import pytest
-from marshmallow import Schema, fields, validates,validates_schema, ValidationError
+from marshmallow import Schema, fields, post_dump, validates, validates_schema, ValidationError
 
 from ..models import (
     DictNature,
@@ -11,7 +11,8 @@ from ..models import (
     ListNature,
     NestedNature,
     UrlNature,
-    SchemaValidate
+    SchemaValidate,
+    XAPIField
 )
 from ..schema_gen import SchemaGen, nested_set, nested_get
 from .test_outil import compare_fields
@@ -47,6 +48,7 @@ def django_db_setup(django_db_setup, django_db_blocker):
 
 # test data
 NATURES = EventField.EventNature
+XAPI_NATURES = XAPIField.XAPINature
 
 SIMPLE_TYPES = {
     NATURES.FIELD: fields.Field,
@@ -97,52 +99,47 @@ class DB:
     saved = []
 
     def create_event(self, name="Eventname2", description="desc", parent=None):
-        """Create on Event record"""
-        event = Event(name=name, description=description, parent=parent)
-        event.save()
-        self.saved.append(event)
-        return event
+        """Create one Event record"""
+        return self.save(Event(name=name, description=description, parent=parent))
 
     def create_field(self, event=EVENT, name="field", **kwargs):
         """Create one EventField record"""
-        nature = kwargs.get("nature", NATURES.STRING)
-        nature_id = kwargs.get("nature_id", None)
-        required = kwargs.get("required", True)
-        allow_none = kwargs.get("allow_none", False)
-        excluded = kwargs.get("excluded", False)
-        event_field = EventField(
-            event=event,
-            name=name,
-            nature=nature,
-            nature_id=nature_id,
-            required=required,
-            allow_none=allow_none,
-            excluded=excluded,
-            description="desc"
-        )
-        event_field.save()
-        self.saved.append(event_field)
-        return event_field
+        ikwargs = {}
+        ikwargs['nature'] = kwargs.get("nature", NATURES.STRING)
+        ikwargs['nature_id'] = kwargs.get("nature_id", None)
+        ikwargs['required'] = kwargs.get("required", True)
+        ikwargs['allow_none'] = kwargs.get("allow_none", False)
+        ikwargs['excluded'] = kwargs.get("excluded", False)
+        ikwargs['description'] = kwargs.get("description", "desc")
+        return self.save(EventField(event=event, name=name, **ikwargs))
+
+    def create_xapi_field(self, event=EVENT, parent=None, name="field", **kwargs):
+        """Create one XAPIField record"""
+        ikwargs = {}
+        ikwargs['nature'] = kwargs.get("nature", XAPI_NATURES.STRING)
+        ikwargs['default'] = kwargs.get("default", None)
+        ikwargs['description'] = kwargs.get("description", "desc")
+        return self.save(XAPIField(event=event, parent=parent, name=name, **ikwargs))
 
     def create_schema_validate(self, event=EVENT, name="schema"):
         """Create one SchemaValidate record"""
-        schema_validate = SchemaValidate(event=event, name=name)
-        schema_validate.save()
-        self.saved.append(schema_validate)
-        return schema_validate
+        return self.save(SchemaValidate(event=event, name=name))
 
     def create_nested_nature(self, event=EVENT1, exclude=""):
         """Create one NestedNature record"""
-        nested_nature = NestedNature(event=event, exclude=exclude)
-        nested_nature.save()
-        self.saved.append(nested_nature)
-        return nested_nature
+        return self.save(NestedNature(event=event, exclude=exclude))
 
     def delete(self):
         """Delete all saved records"""
         for record in self.saved:
             if record.id:
                 record.delete()
+    
+    def save(self, record):
+        """Save the record and return it"""
+        record.save()
+        self.saved.append(record)
+        return record
 
 @pytest.fixture
 def _db():
@@ -752,9 +749,9 @@ if nested['field_2'] == 'raise':
             pytest.fail("Schould not raise exception!")
 
 
-def test_schemagen_get_events_from_schema_validate(_db):
+def test_schemagen_get_related_field_names_and_paths_validate(_db):
     """
-    SchemaGen.get_events_from_schema should return
+    SchemaGen.get_related_field_names_and_paths should return
     an array of arrays representing the access paths for
     each related event
     """
@@ -763,25 +760,29 @@ def test_schemagen_get_events_from_schema_validate(_db):
     # Create SchemaValidate
     schema_validate = _db.create_schema_validate()
     schema_validate.event_fields.add(event_field1)
-    events_paths = SchemaGen.get_events_from_schema(schema_validate)
-    assert events_paths == [["field_1"]]
+    names, paths = SchemaGen.get_related_field_names_and_paths(schema_validate)
+    assert paths == [["field_1"]]
+    assert names == {"field_1"}
     # Add another event_field to event (Without adding it to the SchemaValidate)
     _db.create_field(name="field_not_validated")
-    events_paths = SchemaGen.get_events_from_schema(schema_validate)
-    assert events_paths == [["field_1"]]
+    names, paths = SchemaGen.get_related_field_names_and_paths(schema_validate)
+    assert paths == [["field_1"]]
+    assert names == {"field_1"}
     # Add another event_field to event (And adding it to the SchemaValidate)
     event_field2 = _db.create_field(name="field_2")
     schema_validate.event_fields.add(event_field2)
-    events_paths = SchemaGen.get_events_from_schema(schema_validate)
-    assert events_paths == [["field_1"], ["field_2"]]
+    names, paths = SchemaGen.get_related_field_names_and_paths(schema_validate)
+    assert paths == [["field_1"], ["field_2"]]
+    assert names == {"field_1", "field_2"}
     # Create EventFields in EVENT1
     event_field3 = _db.create_field(name="field_3", event=EVENT1)
     _db.create_field(name="field_4", event=EVENT1)
     # Generate the Schema of EVENT nesting EVENT1
     _db.create_field(name="nested", nature=NATURES.NESTED, nature_id=1)
     schema_validate.event_fields.add(event_field3)
-    events_paths = SchemaGen.get_events_from_schema(schema_validate)
-    assert events_paths == [["field_1"], ["field_2"], ["nested", "field_3"]]
+    names, paths = SchemaGen.get_related_field_names_and_paths(schema_validate)
+    assert paths == [["field_1"], ["field_2"], ["nested", "field_3"]]
+    assert names == {"field_1", "field_2", "nested"}
     # Create Event 2 with 3 fields
     event2 = _db.create_event()
     event_field5 =_db.create_field(event=event2, name="field_5")
@@ -798,14 +799,15 @@ def test_schemagen_get_events_from_schema_validate(_db):
     nested_nature2 = _db.create_nested_nature(event=event2)
     _db.create_field(name="nested_2", nature=NATURES.NESTED, nature_id=nested_nature2.id)
     # events_path should not change as we haven't added evetns
-    events_paths = SchemaGen.get_events_from_schema(schema_validate)
-    assert events_paths == [["field_1"], ["field_2"], ["nested", "field_3"]]
+    names, paths = SchemaGen.get_related_field_names_and_paths(schema_validate)
+    assert paths == [["field_1"], ["field_2"], ["nested", "field_3"]]
+    assert names == {"field_1", "field_2", "nested"}
     # Add fields to schema_validate
     schema_validate.event_fields.add(event_field8)
     schema_validate.event_fields.add(event_field6)
     schema_validate.event_fields.add(event_field5)
-    events_paths = SchemaGen.get_events_from_schema(schema_validate)
-    assert events_paths == [
+    names, paths = SchemaGen.get_related_field_names_and_paths(schema_validate)
+    assert paths == [
         ["field_1"],
         ["field_2"],
         ["nested", "field_3"],
@@ -813,3 +815,39 @@ def test_schemagen_get_events_from_schema_validate(_db):
         ["nested_2", "field_6"],
         ["nested_2", "nest", "field_8"],
     ]
+    assert names == {"field_1", "field_2", "nested", "nested_2"}
+
+# @pytest.mark.parametrize("input_props,expected_props", SIMPLE_FIELD_TEST)
+# def test_conversion_with_one_string_field_and_empty_xapi_field(_db, input_props, expected_props):
+#     """
+#     Given a database record of a schema
+#     With one not related XAPIField
+#     The generated marshmallow schema should dump the default value
+#     of the XAPIField
+#     """
+#     # Create EventField / XAPI Field
+#     _db.create_field(name="field_1", **input_props)
+#     _db.create_xapi_field(name="x_field")
+#     # Generate the Schema
+#     schema = SchemaGen.gen_schema_from_record(EVENT)
+#     ### START EXPECTED EVENT SCHEMA
+#     def func():
+#         return None
+
+#     xapi_fields = [{"path": [["x_field"]], "paths": [[]]}]
+#     class Eventname(Schema):
+#         """desc"""
+#         field_1 = fields.String(**expected_props)
+
+#         @post_dump
+#         def transform_to_xapi(self, data, **kwargs):
+#             transformed = {}
+#             for xapi_field in xapi_fields:
+#                 kwargs_dict = {}
+#                 for path in xapi_field["paths"]:
+#                     nested_set(kwargs_dict, path, nested_get(data, path))
+#                 nested_set(transformed, xapi_field["path"], func(**kwargs_dict))
+#             return transformed
+
+#     ### END EXPECTED EVENT SCHEMA
+#     compare_fields(expected=Eventname, actual=schema)

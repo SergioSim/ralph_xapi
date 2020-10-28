@@ -65,20 +65,11 @@ class SchemaGen:
         """Insert a schema_validation function in schema_props dict"""
         if not schema_validate or not schema_validate.validate:
             return
-        paths = SchemaGen.get_events_from_schema(schema_validate)
-        kwargs = SchemaGen.get_kwargs_from_paths(paths)
         name = schema_validate.name
-        function_ast = FunctionDef(
-            name=f"validate_schema_{name}",
-            args=arguments(
-                args=[], posonlyargs=[], kwonlyargs=kwargs, kw_defaults=[None]*len(kwargs),
-                defaults=[]
-            ),
-            body=parse(schema_validate.validate).body,
-            decorator_list=[],
+        field_names, paths = SchemaGen.get_related_field_names_and_paths(schema_validate)
+        gen_func = SchemaGen.create_function(
+            name=f"validate_schema_{name}", body=schema_validate.validate, kwargs=field_names
         )
-        func_code = SchemaGen.get_func_code_from_ast(function_ast)
-        gen_func = FunctionType(func_code, func_scope)
         def gen_validate_schema(self, data, **kwargs):
             kwargs_dict = {}
             for path in paths:
@@ -88,12 +79,24 @@ class SchemaGen:
         schema_props[f"validate_schema_{name}"] = validates_schema(gen_validate_schema)
 
     @staticmethod
-    def get_func_code_from_ast(function_ast):
+    def create_function(name, body, args=None, kwargs=None):
+        """Returns a newly created function with specified name, body, and signature"""
+        function_ast = FunctionDef(
+            name=name,
+            args=SchemaGen.get_func_args(args=args, kwargs=kwargs),
+            body=parse(body).body,
+            decorator_list=[],
+        )
+        return SchemaGen.get_function_from_ast(function_ast)
+
+    @staticmethod
+    def get_function_from_ast(function_ast):
         """Returns func_code object corresponding to function_ast"""
         module_ast = Module(body=[function_ast], type_ignores=[])
         fix_missing_locations(module_ast)
         module_code = compile(module_ast, "<not_a_file>", "exec")
-        return [c for c in module_code.co_consts if isinstance(c, CodeType)][0]
+        func_code = [c for c in module_code.co_consts if isinstance(c, CodeType)][0]
+        return FunctionType(func_code, func_scope)
 
     @staticmethod
     def create_field(record_field):
@@ -107,17 +110,29 @@ class SchemaGen:
     def create_validate_func(record_field):
         """Returns the validation function from record_field"""
         name = record_field.name
-        function_ast = FunctionDef(
-            name=f"validate_{name}",
-            args=arguments(
-                args=[arg(arg="self"), arg(arg=name)],
-                posonlyargs=[], kwonlyargs=[], kw_defaults=[], defaults=[]
-            ),
-            body=parse(record_field.validate).body,
-            decorator_list=[],
+        gen_func = SchemaGen.create_function(
+            name=f"validate_{name}", body=record_field.validate, args=["self", name]
         )
-        func_code = SchemaGen.get_func_code_from_ast(function_ast)
-        return set_hook(FunctionType(func_code, func_scope), "validates", field_name=name)
+        return set_hook(gen_func, "validates", field_name=name)
+
+    @staticmethod
+    def get_func_args(args=None, kwargs=None):
+        """Returns an ast arguments object with specified args, kwargs"""
+        ast_args = SchemaGen.get_arg_list_from_str(args)
+        ast_kwargs = SchemaGen.get_arg_list_from_str(kwargs)
+        argument_args = {"args": ast_args, "posonlyargs": [], "defaults": []}
+        argument_kwargs = {"kwonlyargs": ast_kwargs, "kw_defaults": [None]*len(ast_kwargs)}
+        return arguments(**argument_args, **argument_kwargs)
+
+    @staticmethod
+    def get_arg_list_from_str(str_args):
+        """Returns an ast arg list from a list of strings"""
+        ast_args = []
+        if not str_args:
+            return ast_args
+        for str_arg in str_args:
+            ast_args.append(arg(arg=str_arg))
+        return ast_args
 
     @staticmethod
     def get_field_props(record_field):
@@ -188,14 +203,14 @@ class SchemaGen:
             field_props["values"] = SchemaGen.create_field(nature.values)
 
     @staticmethod
-    def get_events_from_schema(schema_validate):
-        """Returns a list of list representing the paths for relative events"""
+    def get_related_field_names_and_paths(schema_validate):
+        """Returns names of root fields and their paths that relate to schema_validate"""
         field_paths = []
         selected_fields = schema_validate.event_fields.all()
         event_fields = schema_validate.event.eventfield_set.all()
         SchemaGen.add_field_path(event_fields, selected_fields, field_paths, [])
-        # field_paths.sort(key=lambda k: (len(k), "".join(k)))
-        return field_paths
+        field_names = {x[0] for x in field_paths}
+        return field_names, field_paths
 
     @staticmethod
     def add_field_path(event_fields, selected_fields, field_paths, depth=None):
@@ -203,7 +218,6 @@ class SchemaGen:
         if not depth:
             depth = []
         for event_field in event_fields:
-            # print("EF:", event_field)
             if event_field in selected_fields:
                 field_paths.append(depth + [event_field.name])
                 selected_fields = selected_fields.exclude(id=event_field.id)
@@ -215,12 +229,3 @@ class SchemaGen:
                 nested_fields = nested_event.eventfield_set.all()
                 SchemaGen.add_field_path(nested_fields, selected_fields, field_paths, depth)
                 del depth[-1]
-
-    @staticmethod
-    def get_kwargs_from_paths(paths):
-        """Returns a dict of ast arg objects representing kwargs"""
-        kw_names = set([x[0] for x in paths])
-        kwargs = []
-        for kw_arg in kw_names:
-            kwargs.append(arg(arg=kw_arg))
-        return kwargs
