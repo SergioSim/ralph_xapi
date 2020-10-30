@@ -1,13 +1,14 @@
 import { Editor } from "@tinymce/tinymce-react";
 import React, { Component } from "react";
-import { getCookie } from '../../utils';
 import { alertService } from '../../services/alert.service';
-import EventGraph from './EventGraph';
+import Api from '../../services/api.service'
+// import EventGraph from './EventGraph';
 import CreateEventField from "./CreateEventField";
 
 class Event extends Component {
   constructor(props){
     super(props);
+    this.api = new Api();
     this.state = {
       edit: false,
       event: this.props.event,
@@ -18,58 +19,29 @@ class Event extends Component {
 
   save(e){
     e.preventDefault();
-    const csrftoken = getCookie('csrftoken');
-    fetch('api/event/' + this.state.event.id, {
-      credentials: 'include',
-      method: 'PUT',
-      mode: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      body: JSON.stringify({
-        name: this.state.event.name,
-        description: this.state.event.description,
-        parent: this.state.event.parent
-      })
-    }).then(response => {
-      this.statusCode = response.status;
-      return response.json();
-    }).then(event => {
+    const body = {
+      name: this.state.event.name,
+      description: this.state.event.description,
+      parent: this.state.event.parent
+    }
+    this.api.updateEvent(this.state.event.id, body).then(event => {
+      if(!event) return;
       event.fields = this.state.event.fields;
-      if(this.statusCode != 200){
-        alertService.error(JSON.stringify(event));
-        return;
-      }
       this.setState({edit: false});
       this.props.updateEvent(event);
       this.props.updateEditEvent(null, () => {}, event);
       alertService.success('Event: "' + event.name + '" updated with success!');
-    })
+    });
   }
 
   delete(e){
     e.preventDefault();
-    const csrftoken = getCookie('csrftoken');
     const eventName = this.props.event.name;
     if(!confirm("Are you sure to want to delete Event:" + eventName)){
       return;
     };
-    fetch('api/event/' + this.props.event.id, {
-      credentials: 'include',
-      method: 'DELETE',
-      mode: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken
-      }
-    }).then(response => {
-      if(response.status != 204){
-        alertService.error(response.status);
-        return;
-      }
+    this.api.deleteEvent(this.props.event.id).then(response => {
+      if(!response) return;
       this.props.handleSidebarClick(null);
       this.props.deleteEvent(this.props.event.id);
       this.props.fetchEvents();
@@ -192,7 +164,7 @@ class Event extends Component {
           event={this.state.event}
           toggleShowAddField={() => this.toggleShowAddField()}
           updateField={(field) => this.updateField(field)}/>
-        <EventGraph event={showEdit ? this.props.event: this.state.event} events={this.props.events} />
+        {/* <EventGraph event={showEdit ? this.props.event: this.state.event} events={this.props.events} /> */}
 
       </div>
     );

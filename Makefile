@@ -78,6 +78,10 @@ test: ## run back-end tests
 	bin/pytest
 .PHONY: test
 
+watch: ## run npm watch to recompile frontend on changes
+	docker-compose run --rm -uroot app npm run watch --prefix ./frontend
+.PHONY: watch
+
 # -- Misc
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

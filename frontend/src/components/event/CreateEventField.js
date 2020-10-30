@@ -1,7 +1,7 @@
 import { Editor } from '@tinymce/tinymce-react';
 import React, { Component } from "react";
-import { getCookie } from '../../utils'
 import { alertService } from '../../services/alert.service';
+import Api from '../../services/api.service';
 import $ from 'jquery'
 
 const eventNature = {
@@ -22,7 +22,8 @@ const eventNature = {
 
 class CreateEventField extends Component {
 	constructor(props){
-		super(props);
+    super(props);
+    this.api = new Api();
 		this.state = {
       name: "",
       nature: eventNature.STRING,
@@ -101,40 +102,16 @@ class CreateEventField extends Component {
 
   submit(e) {
     e.preventDefault();
-    const event_id = this.props.event.id;
-    const csrftoken = getCookie('csrftoken');
-    fetch('api/event/field/', {
-      credentials: 'include',
-      method: 'POST',
-      mode: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      body: JSON.stringify({
-        event: this.props.event.id,
-        name: this.state.name,
-        nature: this.state.nature,
-        description: this.state.description,
-        required: this.state.required,
-        allow_none: this.state.allow_none,
-      })
-    }).then(response => {
-      this.statusCode = response.status;
-      if (response.status > 400) {
-        return;
-      }
-      return response.json();
-    }).then(eventField => {
-      if (!eventField){
-        alertService.error("Some thing is wrong :( Status " + this.statusCode);
-        return;
-      }
-      if(this.statusCode != 201){
-        alertService.error(JSON.stringify(eventField));
-        return;
-      }
+    const body = {
+      event: this.props.event.id,
+      name: this.state.name,
+      nature: this.state.nature,
+      description: this.state.description,
+      required: this.state.required,
+      allow_none: this.state.allow_none,
+    }
+    this.api.createEventField(body).then(eventField => {
+      if (!eventField) return;
       alertService.success('Event: "' + eventField.name + '" created with success!');
       this.setState({
         name: "",
@@ -146,7 +123,8 @@ class CreateEventField extends Component {
       })
       this.editor.setContent('');
       this.props.updateField(eventField);
-    })
+      document.getElementById("eventFieldCreateForm").reset();
+    });
   }
 
   render() {

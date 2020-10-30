@@ -1,11 +1,12 @@
 import { Editor } from '@tinymce/tinymce-react';
 import React, { Component } from "react";
-import { getCookie } from '../../utils'
 import { alertService } from '../../services/alert.service';
+import Api from '../../services/api.service';
 
 class CreateEvent extends Component {
   constructor(props) {
     super(props);
+    this.api = new Api();
     this.state = {
       name: "",
       description: "",
@@ -28,39 +29,20 @@ class CreateEvent extends Component {
 
   submit(e){
     e.preventDefault();
-    const csrftoken = getCookie('csrftoken');
-    fetch('api/event/', {
-      credentials: 'include',
-      method: 'POST',
-      mode: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken
-      },
-      body: JSON.stringify({
-        name: this.state.name,
-        description: this.state.description,
-        parent: this.state.parent
-      })
-    }).then(response => {
-      this.statusCode = response.status;
-      return response.json();
-    }).then(event => {
+    const body = {
+      name: this.state.name,
+      description: this.state.description,
+      parent: this.state.parent
+    };
+    this.api.createEvent(body).then(event => {
+      if(!event) return;
       event.fields = new Map();
-      if(this.statusCode != 201){
-        alertService.error(JSON.stringify(event));
-        return;
-      }
       this.props.updateEvent(event);
-      this.setState({
-        name: "",
-        description: "",
-        parent: ""
-      })
+      this.setState({name: "", description: "", parent: ""});
       this.editor.setContent('');
       alertService.success('Event: "' + event.name + '" created with success!');
-    })
+      document.getElementById("eventCreateForm").reset();
+    });
   }
 
   render() {

@@ -7,10 +7,12 @@ import CreateEvent from "./event/CreateEvent";
 import Alert from "./alert/Alert";
 import { alertService } from '../services/alert.service';
 import feather from 'feather-icons/dist/feather';
+import Api from '../services/api.service'
 
 class App extends Component {
   constructor(props) {
     super(props);
+    this.api = new Api();
     this.state = {
       events: new Map(),
       showEvent: null,
@@ -29,38 +31,22 @@ class App extends Component {
   }
 
   fetchEvents(){
-    fetch("api/event")
-      .then(response => {
-        if (response.status > 400) {
-          alertService.error(`Some thing is wrong :( Status: ${response.status}`);
-          return;
-        }
-        return response.json();
-      })
-      .then(events => {
-        this.fetchEventFields(events);
-      });
+    this.api.fetchEvents().then(events => {
+      this.fetchEventFields(events);
+    });
   }
 
   fetchEventFields(iEvents){
-    fetch("api/event/field/")
-      .then(response => {
-        if (response.status > 400) {
-          alertService.error(`Some thing is wrong :( Status: ${response.status}`);
-          return;
-        }
-        return response.json();
-      })
-      .then(fields => {
-        fields = fields.reduce(
-          (acc, x) => acc.set(x.event, (acc.get(x.event) || new Map()).set(x.id, x)),
-          new Map());
-        const events = new Map(iEvents.map(x => {
-          x.fields = fields.get(x.id) || new Map();
-          return [x.id, x];
-        }));
-        this.setState({events})
-      });        
+    this.api.fetchEventFields().then(fields => {
+      fields = fields.reduce(
+        (acc, x) => acc.set(x.event, (acc.get(x.event) || new Map()).set(x.id, x)),
+        new Map());
+      const events = new Map(iEvents.map(x => {
+        x.fields = fields.get(x.id) || new Map();
+        return [x.id, x];
+      }));
+      this.setState({events})
+    });        
   }
 
   handleSidebarClick(event){
