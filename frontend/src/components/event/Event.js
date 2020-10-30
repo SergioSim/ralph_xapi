@@ -2,7 +2,7 @@ import { Editor } from "@tinymce/tinymce-react";
 import React, { Component } from "react";
 import { alertService } from '../../services/alert.service';
 import Api from '../../services/api.service'
-// import EventGraph from './EventGraph';
+import EventGraph from './EventGraph';
 import CreateEventField from "./CreateEventField";
 
 class Event extends Component {
@@ -164,8 +164,7 @@ class Event extends Component {
           event={this.state.event}
           toggleShowAddField={() => this.toggleShowAddField()}
           updateField={(field) => this.updateField(field)}/>
-        {/* <EventGraph event={showEdit ? this.props.event: this.state.event} events={this.props.events} /> */}
-
+        <EventGraph event={showEdit ? this.props.event : this.state.event} events={this.props.events} />
       </div>
     );
   }

@@ -58,6 +58,6 @@ export default class Api {
   }
 
   createEventField(body, expectedStatus = 201) {
-    return this.apiFetch('api/event/', "POST", body, expectedStatus);
+    return this.apiFetch('api/event/field/', "POST", body, expectedStatus);
   }
 }
