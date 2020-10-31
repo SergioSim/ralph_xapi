@@ -21,16 +21,3 @@
   font-family: sans-serif,Arial Black;
   font-size: 20px;
 }
-
-div.tooltip {	
-  position: absolute;			
-  text-align: center;			
-  width: 150px;					
-  height: 150px;					
-  padding: 2px;				
-  font: 12px sans-serif;		
-  background: lightsteelblue;	
-  border: 0px;		
-  border-radius: 8px;
-  z-index: 2;
-}

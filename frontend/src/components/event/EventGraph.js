@@ -117,7 +117,7 @@ class EventGraph extends Component {
     this.tooltipChange = true;
     this.clickedOnNode = true;
     this.setState({tooltipStyle: {
-      top: (treeNode.layerY - this.tooltipTransformY),
+      top: (treeNode.layerY - this.tooltipTransformY - 50),
       left: (treeNode.layerX - this.tooltipTransformX),
       opacity: 1,
       transform: "translate(" + this.tooltipTransformX + "px, " + this.tooltipTransformY + "px)",
@@ -137,7 +137,11 @@ class EventGraph extends Component {
   render() {
     return (
       <div>
-        <div className="tooltip" style={this.state.tooltipStyle}></div>
+        <div className="popover bs-popover-right" role="tooltip" style={this.state.tooltipStyle}>
+          <div className="arrow" style={{top: "34px"}}></div>
+          <h3 className="popover-header">Popover Header</h3>
+          <div className="popover-body">And here's some amazing content. It's very engaging. Right?</div>
+        </div>
         <svg id="event-graph" ref={this.graphRef}></svg>
       </div>
     );
