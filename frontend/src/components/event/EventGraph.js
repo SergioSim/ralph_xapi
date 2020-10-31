@@ -29,16 +29,22 @@ class EventGraph extends Component {
       if (d.x > x1) x1 = d.x;
       if (d.x < x0) x0 = d.x;
     });
+    const startX = - root.dy / 1.5
+    const startY = x0 - root.dx;
     d3.selectAll("svg > *").remove();
-    const svg = d3.select(this.graphRef.current).attr("viewBox", [0, 0, width, x1 - x0 + root.dx * 2]);
+    const svg = d3.select(this.graphRef.current).attr("viewBox", [startX, - startY, width, x1 - x0 + root.dx * 2]);
     this.populateSvg(svg, root, x0);
   }
 
   populateSvg(svg, root, x0) {
     const g = svg.append("g")
       .attr("font-family", "sans-serif,Arial Black")
-      .attr("font-size", 20)
-      .attr("transform", `translate(${root.dy / 1.5},${root.dx - x0})`);
+      .attr("font-size", 20);
+    
+    svg.call(d3.zoom().transform, d3.zoomIdentity);
+    svg.call(d3.zoom().on("zoom", function (event) {
+      g.attr("transform", event.transform)
+    }));
 
     const link = g.append("g")
       .attr("fill", "none")
@@ -83,7 +89,7 @@ class EventGraph extends Component {
   render() {
     return (
       <div>
-        <svg ref={this.graphRef}></svg>
+        <svg ref={this.graphRef} height="100%" width="100%" style={{minHeight: "600px"}}></svg>
       </div>
     );
   }
