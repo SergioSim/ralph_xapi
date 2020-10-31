@@ -36,7 +36,12 @@ class CreateEventField extends Component {
   }
 
   componentDidMount(){
-    $('#createEventModal').modal({show: this.props.hidden})
+    $('#createEventModal').modal({show: this.props.hidden});
+    window.addEventListener("keydown", ev => {
+      if(this.props.hidden && ev.key == "Escape"){
+        this.props.toggleShowAddField();
+      }
+    });
   }
 
   componentDidUpdate(){
@@ -132,7 +137,6 @@ class CreateEventField extends Component {
       <div className="modal fade"
           id="createEventModal"
           data-backdrop="static"
-          data-keyboard="false"
           tabIndex="-1"
           aria-labelledby="staticBackdropLabel"
           aria-hidden={this.props.hidden ? "false": "true"}>

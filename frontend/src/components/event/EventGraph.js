@@ -25,7 +25,7 @@ class EventGraph extends Component {
   }
 
   componentDidUpdate() {
-    if(!this.tooltipChange){
+    if(!this.tooltipChange) {
       this.updateGraph();
     }
     this.tooltipChange = false;
@@ -141,7 +141,6 @@ class EventGraph extends Component {
   clickNode(event, treeNode){
     this.tooltipChange = true;
     this.clickedOnNode = true;
-    console.log(treeNode.data.value);
     this.setState({
       tooltipStyle: {
         top: (event.layerY - this.tooltipTransformY - 50),
@@ -163,10 +162,15 @@ class EventGraph extends Component {
     this.setState({tooltipStyle: {opacity: 0}})
   }
 
-  toggleShowAddField(e, field) {
-    e.preventDefault();
+  toggleShowAddField(field) {
     this.setState({tooltipStyle: {opacity: 0}});
     this.props.toggleShowAddField(field);
+  }
+
+  deleteEventField(field) {
+    this.props.deleteEventField(field, () => {
+      this.setState({tooltipStyle: {opacity: 0}});
+    });
   }
 
   render() {
@@ -179,13 +183,13 @@ class EventGraph extends Component {
           <div className="popover-body">
             <div className="list-group">
               {field && (field.nature == "Nested" || field == this.props.event)
-              ? <button className="btn btn-success my-1" onClick={(e) => this.toggleShowAddField(e, field)}>Create</button>
+              ? <button className="btn btn-success my-1" onClick={() => this.toggleShowAddField(field)}>Create</button>
               : null}
               {field && field != this.props.event
-              ? <button className="btn btn-primary my-1" onClick={(e) => this.toggleShowAddField(e, field)}>More Info</button>
+              ? <button className="btn btn-primary my-1" onClick={() => this.toggleShowAddField(field)}>More Info</button>
               : null}
               {field && field != this.props.event
-              ? <button className="btn btn-danger my-1" onClick={(e) => this.toggleShowAddField(e, field)}>Delete</button>
+              ? <button className="btn btn-danger my-1" onClick={() => this.deleteEventField(field)}>Delete</button>
               : null}
             </div>
           </div>

@@ -85,11 +85,11 @@ class Event extends Component {
     this.setState((state, props) => ({showAddField: !state.showAddField}));
   }
 
-  updateEvent(event){
+  updateEvent(event, callback){
     this.props.updateEvent(event, () => {
       this.setState((state, props) => {
         ({event: props.event})
-      });
+      }, callback);
     });
   }
 
@@ -99,10 +99,17 @@ class Event extends Component {
     this.updateEvent(event);
   }
 
-  deleteField(field){
-    const event = this.props.event;
-    event.fields.delete(field.id);
-    this.updateEvent(event);
+  deleteEventField(field, callback = () => {}){
+    if(!confirm("Are you sure to want to delete the EventField:" + field.name)){
+      return;
+    };
+    this.api.deleteEventField(field.id).then(response => {
+      if(!response) return;
+      const event = this.props.event;
+      event.fields.delete(field.id);
+      this.updateEvent(event, callback);
+      alertService.success('EventField: "' + field.name + '" deleted with success!');
+    });
   }
 
   render() {
@@ -177,6 +184,7 @@ class Event extends Component {
           event={this.props.event}
           events={this.props.events}
           toggleShowAddField={(event) => this.toggleShowAddField(event)}
+          deleteEventField={(field, callback) => this.deleteEventField(field, callback)}
         />
       </div>
     );

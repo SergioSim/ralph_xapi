@@ -60,4 +60,8 @@ export default class Api {
   createEventField(body, expectedStatus = 201) {
     return this.apiFetch('api/event/field/', "POST", body, expectedStatus);
   }
+
+  deleteEventField(eventFieldId, expectedStatus = 204) {
+    return this.apiFetch('api/event/field/' + eventFieldId, "DELETE", null, expectedStatus, false);
+  }
 }
