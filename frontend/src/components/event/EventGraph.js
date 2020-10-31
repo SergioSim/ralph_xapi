@@ -1,6 +1,8 @@
 import './EventGraph.css';
 import React, { Component } from "react";
 import * as d3 from "d3";
+import feather from 'feather-icons/dist/feather';
+import { data } from 'jquery';
 
 class EventGraph extends Component {
   constructor(props) {
@@ -10,7 +12,8 @@ class EventGraph extends Component {
         top: 0,
         left: 0,
         opacity: 0
-      }
+      },
+      tooltipField: null
     }
     this.graphRef = React.createRef();
     this.tooltipChange = false;
@@ -35,7 +38,7 @@ class EventGraph extends Component {
     this.props.event.fields.forEach(field => {
       children.push({name: field.name, value: field});
     })
-    const root = this.tree({name, children}, width);
+    const root = this.tree({name, children, value: this.props.event}, width);
     let x0 = Infinity;
     let x1 = -x0;
     root.each(d => {
@@ -47,6 +50,7 @@ class EventGraph extends Component {
     d3.selectAll(this.graphRef.current.children).remove();
     const svg = d3.select(this.graphRef.current).attr("viewBox", [startX, - startY, width, x1 - x0 + root.dx * 2]);
     this.populateSvg(svg, root, x0);
+    feather.replace();
   }
 
   populateSvg(svg, root, x0) {
@@ -90,19 +94,37 @@ class EventGraph extends Component {
         .join("g")
           .attr("class", "node")
           .attr("transform", d => `translate(${d.y},${d.x})`)
-          .on("click", (treeNode) => this.clickNode(treeNode));
+          .on("click", (treeNode, d) => this.clickNode(treeNode, d));
   
-    node.append("circle")
-        .style("fill", d => d.children ? "#7be98d" : "#fff")
-        .attr("r", 6);
+    node.append("span")
+        .style("color", d => d.data.value.required ? "#f44336" : "#ccc")
+        .attr("data-feather", "alert-triangle")
+        .attr("width", 20)
+        .attr("x", 12)
+        .attr("y", -12);
   
+    node.append("span")
+        .style("color", d => d.data.value.allow_none ? "#ccc" : "#2196f3")
+        .attr("data-feather", "x-circle")
+        .attr("width", 20)
+        .attr("x", -6)
+        .attr("y", -12);
+
     node.append("text")
         .attr("dy", "0.31em")
-        .attr("x", d => d.children ? -12 : 12)
+        .attr("x", d => d.children ? -6 : 36)
         .attr("text-anchor", d => d.children ? "end" : "start")
         .text(d => d.data.name)
-        .clone(true).lower()
-          .attr("stroke", "white");
+        .append("tspan")
+          .style("fill", "#3eac34")
+          .text(d => ` [${this.getNatureFromNode(d.data.value)}]`);
+  }
+
+  getNatureFromNode(node){
+    if (typeof node.nature !== 'undefined'){
+      return node.nature;
+    }
+    return "Event";
   }
 
   tree(data, width) {
@@ -112,16 +134,19 @@ class EventGraph extends Component {
     return d3.tree().nodeSize([root.dx, root.dy])(root);
   }
 
-  clickNode(treeNode){
-    console.log(treeNode);
+  clickNode(event, treeNode){
     this.tooltipChange = true;
     this.clickedOnNode = true;
-    this.setState({tooltipStyle: {
-      top: (treeNode.layerY - this.tooltipTransformY - 50),
-      left: (treeNode.layerX - this.tooltipTransformX),
-      opacity: 1,
-      transform: "translate(" + this.tooltipTransformX + "px, " + this.tooltipTransformY + "px)",
-    }});
+    console.log(treeNode.data.value);
+    this.setState({
+      tooltipStyle: {
+        top: (event.layerY - this.tooltipTransformY - 50),
+        left: (event.layerX - this.tooltipTransformX),
+        opacity: 1,
+        transform: "translate(" + this.tooltipTransformX + "px, " + this.tooltipTransformY + "px)",
+      },
+      tooltipField: treeNode.data.value
+    });
   }
 
   removeTooltip(){
@@ -139,7 +164,7 @@ class EventGraph extends Component {
       <div>
         <div className="popover bs-popover-right" role="tooltip" style={this.state.tooltipStyle}>
           <div className="arrow" style={{top: "34px"}}></div>
-          <h3 className="popover-header">Popover Header</h3>
+            <h3 className="popover-header">{this.state.tooltipField ? this.state.tooltipField.name: "Not selected!"}</h3>
           <div className="popover-body">And here's some amazing content. It's very engaging. Right?</div>
         </div>
         <svg id="event-graph" ref={this.graphRef}></svg>

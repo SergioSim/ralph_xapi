@@ -182,12 +182,16 @@ class CreateEventField extends Component {
                       <div className="form-check form-check-inline">
                         <input className="form-check-input" type="checkbox" name="required" id="required"
                           checked={this.state.required} onChange={(e)=> this.toggleFieldChange(e, "required")}/>
-                        <label className="form-check-label" htmlFor="required">Required</label>
+                        <label className="form-check-label" htmlFor="required">
+                          <span className="mouse-pointer" data-feather="alert-octagon" style={{height: "1.2em", color: "#f44336"}}></span> Required
+                        </label>
                       </div>
                       <div className="form-check form-check-inline">
                         <input className="form-check-input" type="checkbox" name="allow_none" id="allow_none"
                           checked={this.state.allow_none} onChange={(e)=> this.toggleFieldChange(e, "allow_none")}/>
-                        <label className="form-check-label" htmlFor="Allow None">Allow None</label>
+                        <label className="form-check-label" htmlFor="Allow None">
+                          <span className="mouse-pointer" data-feather="circle" style={{height: "1.2em", color: "#2196f3"}}></span> Allow None
+                        </label>
                       </div>
                     </div>
                     <div className="form-group form-check">
