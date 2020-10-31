@@ -13,7 +13,6 @@ class Event extends Component {
       edit: false,
       event: this.props.event,
       showAddField: false,
-      fields: new Map()
     }
   }
 
@@ -26,9 +25,9 @@ class Event extends Component {
     }
     this.api.updateEvent(this.state.event.id, body).then(event => {
       if(!event) return;
-      event.fields = this.state.event.fields;
       this.setState({edit: false});
-      this.props.updateEvent(event);
+      event.fields = this.props.event.fields;
+      this.updateEvent(event);
       this.props.updateEditEvent(null, () => {}, event);
       alertService.success('Event: "' + event.name + '" updated with success!');
     });
@@ -82,18 +81,28 @@ class Event extends Component {
     })
   }
 
-  toggleShowAddField(){
+  toggleShowAddField(event = null){
     this.setState((state, props) => ({showAddField: !state.showAddField}));
   }
 
-  updateField(field, calback = () => {}){
-    this.setState(
-      (state, props) => {
-        state.event.fields.set(field.id, field)
-        return {event: state.event}
-      },
-      calback
-    );
+  updateEvent(event){
+    this.props.updateEvent(event, () => {
+      this.setState((state, props) => {
+        ({event: props.event})
+      });
+    });
+  }
+
+  updateField(field){
+    const event = this.props.event;
+    event.fields.set(field.id, field);
+    this.updateEvent(event);
+  }
+
+  deleteField(field){
+    const event = this.props.event;
+    event.fields.delete(field.id);
+    this.updateEvent(event);
   }
 
   render() {
@@ -156,15 +165,19 @@ class Event extends Component {
         </div>
         <hr/>
         <div className="d-flex justify-content-between align-content-center">
-        <h2 className="text-muted">Event Graph</h2>
-        <button hidden={showEdit} className="btn btn-primary mx-2" onClick={()=> this.toggleShowAddField()}>Add Field</button>
+          <h2 className="text-muted">Event Graph:</h2>
         </div>
         <CreateEventField
           hidden={this.state.showAddField}
-          event={this.state.event}
-          toggleShowAddField={() => this.toggleShowAddField()}
-          updateField={(field) => this.updateField(field)}/>
-        <EventGraph event={showEdit ? this.props.event : this.state.event} events={this.props.events} />
+          event={this.props.event}
+          toggleShowAddField={(event) => this.toggleShowAddField(event)}
+          updateField={(field) => this.updateField(field)}
+        />
+        <EventGraph
+          event={this.props.event}
+          events={this.props.events}
+          toggleShowAddField={(event) => this.toggleShowAddField(event)}
+        />
       </div>
     );
   }

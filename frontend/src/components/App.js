@@ -91,12 +91,10 @@ class App extends Component {
 
   updateEditEvent(editEvent, callback = () => {}, event=null){
     event = event ? event : editEvent;
-    this.setState({editEvent: editEvent}, () => {
-      this.setState(
-        (state, props) => ({editEvent: editEvent, main: this.createMain(state, event, editEvent)}),
-        callback
-      );
-    });
+    this.setState(
+      (state, props) => ({editEvent, main: this.createMain(state, event, editEvent)}),
+      callback
+    );
   }
 
   render() {

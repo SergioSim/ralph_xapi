@@ -38,6 +38,11 @@ class EventGraph extends Component {
     this.props.event.fields.forEach(field => {
       children.push({name: field.name, value: field});
     })
+    children.sort((a, b) => {
+      var textA = a.name.toUpperCase();
+      var textB = b.name.toUpperCase();
+      return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+    });
     const root = this.tree({name, children, value: this.props.event}, width);
     let x0 = Infinity;
     let x1 = -x0;
@@ -46,9 +51,8 @@ class EventGraph extends Component {
       if (d.x < x0) x0 = d.x;
     });
     const startX = - root.dy / 1.5
-    const startY = x0 - root.dx;
     d3.selectAll(this.graphRef.current.children).remove();
-    const svg = d3.select(this.graphRef.current).attr("viewBox", [startX, - startY, width, x1 - x0 + root.dx * 2]);
+    const svg = d3.select(this.graphRef.current).attr("viewBox", [startX, 0, width, root.dx * 2]);
     this.populateSvg(svg, root, x0);
     feather.replace();
   }
@@ -159,13 +163,32 @@ class EventGraph extends Component {
     this.setState({tooltipStyle: {opacity: 0}})
   }
 
+  toggleShowAddField(e, field) {
+    e.preventDefault();
+    this.setState({tooltipStyle: {opacity: 0}});
+    this.props.toggleShowAddField(field);
+  }
+
   render() {
+    const field = this.state.tooltipField;
     return (
       <div>
         <div className="popover bs-popover-right" role="tooltip" style={this.state.tooltipStyle}>
           <div className="arrow" style={{top: "34px"}}></div>
-            <h3 className="popover-header">{this.state.tooltipField ? this.state.tooltipField.name: "Not selected!"}</h3>
-          <div className="popover-body">And here's some amazing content. It's very engaging. Right?</div>
+            <h3 className="popover-header">{field ? field.name : "Not selected!"}</h3>
+          <div className="popover-body">
+            <div className="list-group">
+              {field && (field.nature == "Nested" || field == this.props.event)
+              ? <button className="btn btn-success my-1" onClick={(e) => this.toggleShowAddField(e, field)}>Create</button>
+              : null}
+              {field && field != this.props.event
+              ? <button className="btn btn-primary my-1" onClick={(e) => this.toggleShowAddField(e, field)}>More Info</button>
+              : null}
+              {field && field != this.props.event
+              ? <button className="btn btn-danger my-1" onClick={(e) => this.toggleShowAddField(e, field)}>Delete</button>
+              : null}
+            </div>
+          </div>
         </div>
         <svg id="event-graph" ref={this.graphRef}></svg>
       </div>

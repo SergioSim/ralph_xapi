@@ -112,7 +112,7 @@ class CreateEventField extends Component {
     }
     this.api.createEventField(body).then(eventField => {
       if (!eventField) return;
-      alertService.success('Event: "' + eventField.name + '" created with success!');
+      alertService.success('EventField: "' + eventField.name + '" created with success!');
       this.setState({
         name: "",
         nature: eventNature.STRING,
