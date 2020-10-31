@@ -1,10 +1,20 @@
+import './EventGraph.css';
 import React, { Component } from "react";
 import * as d3 from "d3";
 
 class EventGraph extends Component {
   constructor(props) {
     super(props);
+    this.state = {
+      tooltipStyle: {
+        top: 0,
+        left: 0,
+        opacity: 0
+      }
+    }
     this.graphRef = React.createRef();
+    this.tooltipChange = false;
+    this.clickedOnNode = false;
   }
 
   componentDidMount() {
@@ -12,7 +22,10 @@ class EventGraph extends Component {
   }
 
   componentDidUpdate() {
-    this.updateGraph();
+    if(!this.tooltipChange){
+      this.updateGraph();
+    }
+    this.tooltipChange = false;
   }
 
   updateGraph() {
@@ -31,26 +44,37 @@ class EventGraph extends Component {
     });
     const startX = - root.dy / 1.5
     const startY = x0 - root.dx;
-    d3.selectAll("svg > *").remove();
+    d3.selectAll(this.graphRef.current.children).remove();
     const svg = d3.select(this.graphRef.current).attr("viewBox", [startX, - startY, width, x1 - x0 + root.dx * 2]);
     this.populateSvg(svg, root, x0);
   }
 
   populateSvg(svg, root, x0) {
-    const g = svg.append("g")
-      .attr("font-family", "sans-serif,Arial Black")
-      .attr("font-size", 20);
+    svg.on("click", () => this.removeTooltip());
+    const g = svg.append("g");
     
+    this.tooltipTransformX = 0;
+    this.tooltipTransformY = 0;
     svg.call(d3.zoom().transform, d3.zoomIdentity);
-    svg.call(d3.zoom().on("zoom", function (event) {
-      g.attr("transform", event.transform)
+    svg.call(d3.zoom().on("zoom", (event) => {
+      const pos = event.transform;
+      const tootip = this.state.tooltipStyle;
+      g.attr("transform", pos);
+      this.tooltipChange = true;
+      this.tooltipTransformX = pos.x;
+      this.tooltipTransformY = pos.y;
+      this.setState({tooltipStyle: {
+        top: tootip.top,
+        left: tootip.left,
+        opacity: tootip.opacity,
+        transform: "translate(" + this.tooltipTransformX + "px, " + this.tooltipTransformY + "px)",
+      }});
     }));
 
     const link = g.append("g")
       .attr("fill", "none")
-      .attr("stroke", "#555")
-      .attr("stroke-opacity", 0.5)
-      .attr("stroke-width", 2)
+      .attr("stroke", "#ccc")
+      .attr("stroke-width", "2px")
       .selectAll("path")
         .data(root.links())
         .join("path")
@@ -64,11 +88,13 @@ class EventGraph extends Component {
         .selectAll("g")
         .data(root.descendants())
         .join("g")
-          .attr("transform", d => `translate(${d.y},${d.x})`);
+          .attr("class", "node")
+          .attr("transform", d => `translate(${d.y},${d.x})`)
+          .on("click", (treeNode) => this.clickNode(treeNode));
   
     node.append("circle")
-        .attr("fill", d => d.children ? "#555" : "#999")
-        .attr("r", 2.5);
+        .style("fill", d => d.children ? "#7be98d" : "#fff")
+        .attr("r", 6);
   
     node.append("text")
         .attr("dy", "0.31em")
@@ -86,10 +112,33 @@ class EventGraph extends Component {
     return d3.tree().nodeSize([root.dx, root.dy])(root);
   }
 
+  clickNode(treeNode){
+    console.log(treeNode);
+    this.tooltipChange = true;
+    this.clickedOnNode = true;
+    this.setState({tooltipStyle: {
+      top: (treeNode.layerY - this.tooltipTransformY),
+      left: (treeNode.layerX - this.tooltipTransformX),
+      opacity: 1,
+      transform: "translate(" + this.tooltipTransformX + "px, " + this.tooltipTransformY + "px)",
+    }});
+  }
+
+  removeTooltip(){
+    // is run after the clickNode!
+    if(this.clickedOnNode){
+      this.clickedOnNode = false;
+      return;
+    }
+    this.tooltipChange = true;
+    this.setState({tooltipStyle: {opacity: 0}})
+  }
+
   render() {
     return (
       <div>
-        <svg ref={this.graphRef} height="100%" width="100%" style={{minHeight: "600px"}}></svg>
+        <div className="tooltip" style={this.state.tooltipStyle}></div>
+        <svg id="event-graph" ref={this.graphRef}></svg>
       </div>
     );
   }
