@@ -11,6 +11,22 @@ class EventFieldPopup extends Component {
     feather.replace();
   }
 
+  getField(field) {
+    if (!field) return;
+    const nullableColor = ["#ccc", "#2196f3"];
+    const requiredColor = ["#f44336", "#ccc"];
+    return (
+      <span>
+        <span className="mouse-pointer" data-feather="x-circle"
+              style={{height: "1.2em", color: nullableColor[field.allow_none ? 0 : 1]}}>      
+        </span> 
+        <span className="mouse-pointer" data-feather="alert-triangle"
+              style={{height: "1.2em", color: requiredColor[field.required ? 0 : 1]}}>
+        </span> {field.name} <span style={{color: "#3eac34"}}>[{field.nature}]</span>
+      </span>
+    )
+  }
+
   getProperties() {
     if (this.props.field.nature == eventNature.IPV4) {
       const nature = this.props.natures.get(eventNature.IPV4).get(this.props.field.nature_id);
@@ -44,17 +60,32 @@ class EventFieldPopup extends Component {
     }
     if (this.props.field.nature == eventNature.LIST) {
       const nature = this.props.natures.get(eventNature.LIST).get(this.props.field.nature_id);
+      if(!nature) return;
       const event_field = this.props.event.fields.get(nature.event_field);
       if(!event_field) return;
-      const requiredColor = event_field.required ? "#f44336" : "#ccc";
       const nullableColor = event_field.allow_none ? "#ccc" : "#2196f3";
+      const requiredColor = event_field.required ? "#f44336" : "#ccc";
       return (
         <div>
           <h6 className="m-0"> Properties: </h6>
           <span className="text-muted">List of: </span>
-          <span className="mouse-pointer" data-feather="x-circle" style={{height: "1.2em", color: nullableColor}}></span>
-          <span className="mouse-pointer" data-feather="alert-triangle" style={{height: "1.2em", color: requiredColor}}></span>
-          {event_field.name} <span style={{color: "#3eac34"}}>[{event_field.nature}]</span>
+          {this.getField(event_field)}
+          <hr/>
+        </div>
+      );
+    }
+    if (this.props.field.nature == eventNature.DICT) {
+      const nature = this.props.natures.get(eventNature.DICT).get(this.props.field.nature_id);
+      if(!nature) return;
+      const keys = this.props.event.fields.get(nature.keys);
+      const values = this.props.event.fields.get(nature.values);
+      const nullableColor = ["#ccc", "#2196f3"];
+      const requiredColor = ["#f44336", "#ccc"];
+      return (
+        <div>
+          <h6 className="m-0"> Properties: </h6>
+          <span className="text-muted">Dict of: </span>
+          Keys: {this.getField(keys)} <br/>Values: {this.getField(values)}
           <hr/>
         </div>
       );

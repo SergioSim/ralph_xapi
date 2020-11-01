@@ -55,6 +55,11 @@ class App extends Component {
         natures: state.natures.set(eventNature.LIST, new Map(list.map(x => [x.id, x])))
       }));
     });
+    this.api.fetchDictNature().then(list => {
+      this.setState((state, props) => ({
+        natures: state.natures.set(eventNature.DICT, new Map(list.map(x => [x.id, x])))
+      }));
+    });
   }
 
   fetchEventFields(iEvents){

@@ -5,7 +5,8 @@ import Api from '../../services/api.service';
 import $ from 'jquery'
 import { eventNature, booleanNatures, notSpecialNatures } from '../../common'
 import CommonFieldCheckBox from './CommonFieldCheckBox'
-import NatureSelect from './NatureSelect'
+import NatureSelect from './NatureSelect';
+import EventFieldSelect from './EventFieldSelect';
 
 
 class CreateEventField extends Component {
@@ -22,8 +23,10 @@ class CreateEventField extends Component {
       exploded: true,
       relative: true,
       strict: true,
-      event_field: ""
-    }
+      event_field: "",
+      keys: "",
+      values: "",
+    };
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
@@ -72,44 +75,39 @@ class CreateEventField extends Component {
     }
     if(this.state.nature == eventNature.DICT){
       return (
-        <span>Input: keys, values</span>
+        <div>
+          <EventFieldSelect
+            event={this.props.event}
+            natures={this.props.natures}
+            label="Keys"
+            name="keys"
+            value={this.state.keys}
+            required={false}
+            handleFieldChange={(e) => this.handleFieldChange(e, "keys")}
+          />
+          <EventFieldSelect
+            event={this.props.event}
+            natures={this.props.natures}
+            label="Values"
+            name="values"
+            value={this.state.values}
+            required={false}
+            handleFieldChange={(e) => this.handleFieldChange(e, "values")}
+          />
+        </div>
       )
     }
     if(this.state.nature == eventNature.LIST){
       return (
-        <div className="form-group form-check">
-          <label className="form-check-label" htmlFor="event_field">
-            EventField
-          </label>
-          <select className="custom-select" size="5" value={this.state.event_field} id="event_field" name="event_field"
-                    onChange={(e)=> this.handleFieldChange(e, "event_field")} required>
-              {(() => {
-                const fields = [<option disabled value="" key="0"> -- select a field -- </option>];
-                this.props.event.fields.forEach(field => {
-                  if (!field.excluded) {
-                    return;
-                  }
-                  const required = field.required ? "True" : "False";
-                  const nullable = field.allow_none ? "True" : "False";
-                  let additionalProps = `required: ${required}, nullable: ${nullable}`;
-                  if (booleanNatures.includes(field.nature)) {
-                    let nature = this.props.natures.get(field.nature).get(field.nature_id);
-                    nature.forEach(function(value, key) {
-                      if(key == "id") return;
-                      additionalProps += `, ${key}: ${value}`;
-                    });
-                  }
-                  additionalProps = `{${additionalProps}}`;
-                  fields.push(
-                    <option value={field.id} key={field.name + field.id}>
-                      {field.name} [{field.nature}] {additionalProps}
-                    </option>
-                  );
-                });
-                return fields;
-              })()}
-          </select>
-        </div>
+        <EventFieldSelect
+          event={this.props.event}
+          natures={this.props.natures}
+          label="EventField"
+          name="event_field"
+          value={this.state.event_field}
+          required={true}
+          handleFieldChange={(e) => this.handleFieldChange(e, "event_field")}
+        />
       )
     }
     if(this.state.nature == eventNature.INTEGER){
@@ -212,6 +210,16 @@ class CreateEventField extends Component {
       });
       return;
     }
+    if (this.state.nature == eventNature.DICT) {
+      this.api.createDictNature({keys: this.state.keys, values: this.state.values}).then(nature => {
+        if(!nature) return;
+        alertService.success(`New ${this.state.nature} Nature created: ${nature.id}-${nature.keys}-${nature.values}!`);
+        this.props.updateNature(this.state.nature, nature);
+        body.nature_id = nature.id;
+        this.sendSubmit(body);
+      });
+      return;
+    }
   }
 
   sendSubmit(body){
@@ -229,7 +237,9 @@ class CreateEventField extends Component {
         exploded: true,
         relative: true,
         strict: true,
-        event_field: ""
+        event_field: "",
+        keys: "",
+        values: "",
       })
       this.editor.setContent('');
       this.props.updateField(eventField);

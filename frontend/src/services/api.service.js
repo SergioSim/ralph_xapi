@@ -61,6 +61,10 @@ export default class Api {
     return this.apiFetch('api/event/nature/list/');
   }
 
+  fetchDictNature() {
+    return this.apiFetch('api/event/nature/dict/');
+  }
+
   createEvent(body, expectedStatus = 201) {
     return this.apiFetch('api/event/', "POST", body, expectedStatus);
   }
@@ -85,6 +89,10 @@ export default class Api {
     return this.apiFetch('api/event/nature/list/', "POST", body, expectedStatus);
   }
 
+  createDictNature(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/nature/dict/', "POST", body, expectedStatus);
+  }
+
   updateEvent(eventId, body, expectedStatus = 200) {
     return this.apiFetch('api/event/' + eventId, "PUT", body, expectedStatus);
   }
@@ -92,8 +100,6 @@ export default class Api {
   deleteEvent(eventId, expectedStatus = 204) {
     return this.apiFetch('api/event/' + eventId, "DELETE", null, expectedStatus, false);
   }
-
-
 
   deleteEventField(eventFieldId, expectedStatus = 204) {
     return this.apiFetch('api/event/field/' + eventFieldId, "DELETE", null, expectedStatus, false);
