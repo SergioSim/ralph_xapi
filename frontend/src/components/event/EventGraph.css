@@ -20,3 +20,8 @@
   font-family: sans-serif,Arial Black;
   font-size: 20px;
 }
+
+.popover.bs-popover-right {
+  max-width: 500px;
+  width: 70%; 
+}

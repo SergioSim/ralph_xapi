@@ -45,8 +45,36 @@ export default class Api {
     return this.apiFetch('api/event/field/');
   }
 
+  fetchIpv4Nature() {
+    return this.apiFetch('api/event/nature/ipv4/');
+  }
+
+  fetchUrlNature() {
+    return this.apiFetch('api/event/nature/url/');
+  }
+
+  fetchIntegerNature() {
+    return this.apiFetch('api/event/nature/integer/');
+  }
+
   createEvent(body, expectedStatus = 201) {
     return this.apiFetch('api/event/', "POST", body, expectedStatus);
+  }
+
+  createEventField(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/field/', "POST", body, expectedStatus);
+  }
+
+  createIpv4Nature(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/nature/ipv4/', "POST", body, expectedStatus);
+  }
+
+  createUrlNature(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/nature/url/', "POST", body, expectedStatus);
+  }
+
+  createIntegerNature(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/nature/integer/', "POST", body, expectedStatus);
   }
 
   updateEvent(eventId, body, expectedStatus = 200) {
@@ -57,9 +85,7 @@ export default class Api {
     return this.apiFetch('api/event/' + eventId, "DELETE", null, expectedStatus, false);
   }
 
-  createEventField(body, expectedStatus = 201) {
-    return this.apiFetch('api/event/field/', "POST", body, expectedStatus);
-  }
+
 
   deleteEventField(eventFieldId, expectedStatus = 204) {
     return this.apiFetch('api/event/field/' + eventFieldId, "DELETE", null, expectedStatus, false);

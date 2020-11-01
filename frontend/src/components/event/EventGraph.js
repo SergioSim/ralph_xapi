@@ -3,6 +3,7 @@ import React, { Component } from "react";
 import * as d3 from "d3";
 import feather from 'feather-icons/dist/feather';
 import { data } from 'jquery';
+import EventFieldPopup from './EventFieldPopup';
 
 class EventGraph extends Component {
   constructor(props) {
@@ -174,26 +175,16 @@ class EventGraph extends Component {
   }
 
   render() {
-    const field = this.state.tooltipField;
     return (
       <div>
-        <div className="popover bs-popover-right" role="tooltip" style={this.state.tooltipStyle}>
-          <div className="arrow" style={{top: "34px"}}></div>
-            <h3 className="popover-header">{field ? field.name : "Not selected!"}</h3>
-          <div className="popover-body">
-            <div className="list-group">
-              {field && (field.nature == "Nested" || field == this.props.event)
-              ? <button className="btn btn-success my-1" onClick={() => this.toggleShowAddField(field)}>Create</button>
-              : null}
-              {field && field != this.props.event
-              ? <button className="btn btn-primary my-1" onClick={() => this.toggleShowAddField(field)}>More Info</button>
-              : null}
-              {field && field != this.props.event
-              ? <button className="btn btn-danger my-1" onClick={() => this.deleteEventField(field)}>Delete</button>
-              : null}
-            </div>
-          </div>
-        </div>
+        <EventFieldPopup
+        event={this.props.event}
+        natures={this.props.natures}
+        field={this.state.tooltipField}
+        style={this.state.tooltipStyle}
+        toggleShowAddField={(field) => this.toggleShowAddField(field)}
+        deleteEventField={(field) => this.deleteEventField(field)}
+        />
         <svg id="event-graph" ref={this.graphRef}></svg>
       </div>
     );

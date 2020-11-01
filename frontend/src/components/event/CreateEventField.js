@@ -3,22 +3,8 @@ import React, { Component } from "react";
 import { alertService } from '../../services/alert.service';
 import Api from '../../services/api.service';
 import $ from 'jquery'
+import { eventNature, booleanNatures, notSpecialNatures } from '../../common'
 
-const eventNature = {
-  // Should be the same as on server side!
-  FIELD:    "Field",
-  NESTED:   "Nested",
-  DICT:     "Dict",
-  LIST:     "List",
-  STRING:   "String",
-  UUID:     "UUID",
-  INTEGER:  "Integer",
-  BOOLEAN:  "Boolean",
-  DATETIME: "DateTime",
-  URL:      "Url",
-  EMAIL:    "Email",
-  IPV4:     "IPv4"
-}
 
 class CreateEventField extends Component {
 	constructor(props){
@@ -32,7 +18,10 @@ class CreateEventField extends Component {
       required: true,
       allow_none: false,
       excluded: false,
-		}
+      exploded: true,
+      relative: true,
+      strict: true,
+    }
   }
 
   componentDidMount(){
@@ -62,14 +51,8 @@ class CreateEventField extends Component {
   }
 
   renderNatureFields(){
-    const notSpecial = [
-      eventNature.STRING,
-      eventNature.UUID,
-      eventNature.BOOLEAN,
-      eventNature.DATETIME,
-      eventNature.EMAIL
-    ];
-    if(this.state.nature in notSpecial){
+    
+    if(notSpecialNatures.includes(this.state.nature)){
       return;
     }
     // TODO: Render for each nature it's custom fields
@@ -100,7 +83,18 @@ class CreateEventField extends Component {
     }
     if(this.state.nature == eventNature.IPV4){
       return (
-        <span>Input: exploded</span>
+        <div className="form-group form-check">
+          <input className="form-check-input" type="checkbox" name="exploded" id="exploded"
+            checked={this.state.exploded} onChange={(e)=> this.toggleFieldChange(e, "exploded")}/>
+          <label className="form-check-label" htmlFor="Allow None">
+            Exploded
+          </label>
+          <p>
+            <small className="text-muted">
+              If selected, serialize ip address in long form, ie. with groups consisting entirely of zeros included.
+            </small>
+          </p>
+        </div>        
       )
     }
   }
@@ -115,6 +109,38 @@ class CreateEventField extends Component {
       required: this.state.required,
       allow_none: this.state.allow_none,
     }
+    if (notSpecialNatures.includes(this.state.nature)) {
+      this.sendSubmit(body);
+      return;
+    }
+    if (booleanNatures.includes(this.state.nature)) {
+      let valueNameRoute = {
+        [eventNature.IPV4]: {value: this.state.exploded, name: "exploded", route: (body) => this.api.createIpv4Nature(body)},
+        [eventNature.URL]: {value: this.state.relative, name: "relative", route: (body) => this.api.createUrlNature(body)},
+        [eventNature.INTEGER]: {value: this.state.strict, name: "strict", route: (body) => this.api.createIntegerNature(body)},
+      }[this.state.nature];
+      let natures = this.props.natures.get(this.state.nature);
+      natures.forEach(function(value, key) {
+        if (value[valueNameRoute.name] == valueNameRoute.value) {
+          body.nature_id =  key;
+        }
+      });
+      if(body.nature_id){
+        this.sendSubmit(body);
+        return;
+      }
+      valueNameRoute.route({[valueNameRoute.name]: valueNameRoute.value}).then(nature => {
+        if(!nature) return;
+        alertService.success('New ' + this.state.nature + ' Nature created: "' + nature.id + '"!');
+        body.nature_id = nature.id;
+        this.props.updateNature(this.state.nature, nature);
+        this.sendSubmit(body);
+      });
+    }
+    
+  }
+
+  sendSubmit(body){
     this.api.createEventField(body).then(eventField => {
       if (!eventField) return;
       alertService.success('EventField: "' + eventField.name + '" created with success!');
@@ -124,7 +150,10 @@ class CreateEventField extends Component {
         nature_fields: {},
         description: "",
         required: true,
-        allow_none: false
+        allow_none: false,
+        exploded: true,
+        relative: true,
+        strict: true,
       })
       this.editor.setContent('');
       this.props.updateField(eventField);
@@ -198,9 +227,7 @@ class CreateEventField extends Component {
                         </label>
                       </div>
                     </div>
-                    <div className="form-group form-check">
-                      {this.renderNatureFields()}
-                    </div>
+                    {this.renderNatureFields()}
                   </div>
                 </div>
               </form>

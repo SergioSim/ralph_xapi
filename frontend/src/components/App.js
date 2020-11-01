@@ -5,9 +5,9 @@ import './App.css';
 import Event from "./event/Event";
 import CreateEvent from "./event/CreateEvent";
 import Alert from "./alert/Alert";
-import { alertService } from '../services/alert.service';
 import feather from 'feather-icons/dist/feather';
 import Api from '../services/api.service'
+import { eventNature } from '../common';
 
 class App extends Component {
   constructor(props) {
@@ -15,6 +15,7 @@ class App extends Component {
     this.api = new Api();
     this.state = {
       events: new Map(),
+      natures: new Map(),
       showEvent: null,
       editEvent: null,
       placeholder: "Loading",
@@ -34,6 +35,11 @@ class App extends Component {
     this.api.fetchEvents().then(events => {
       this.fetchEventFields(events);
     });
+    this.api.fetchIpv4Nature().then(ipv4 => {
+      this.setState((state, props) => ({
+        natures: state.natures.set(eventNature.IPV4, new Map(ipv4.map(x => [x.id, x])))
+      }));
+    })
   }
 
   fetchEventFields(iEvents){
@@ -66,13 +72,22 @@ class App extends Component {
     return <Event
     event={event}
     events={state.events}
+    natures={state.natures}
     updateEvent={(event, callback) => {this.updateEvent(event, callback)}}
     editEvent={editEvent ? editEvent : state.editEvent}
     updateEditEvent={(editEvent, callback, event) => {this.updateEditEvent(editEvent, callback, event)}}
     handleSidebarClick={(event) => this.handleSidebarClick(event)}
     deleteEvent={(id) => this.deleteEvent(id)}
     fetchEvents={() => this.fetchEvents()}
+    updateNature={(name, nature) => this.updateNature(name, nature)}
     />
+  }
+
+  updateNature(name, nature) {
+    this.setState((state, props) => {
+      let newNature = state.natures.get(name).set(nature.id, nature);
+      return {natures: state.natures.set(name, newNature)}
+    });
   }
 
   updateEvent(event, calback = () => {}){
