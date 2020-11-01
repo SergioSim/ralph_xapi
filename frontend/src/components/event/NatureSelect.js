@@ -8,7 +8,6 @@ class NatureSelect extends Component {
   }
 
   render() {
-    console.log("re-rendering!", this.props.nature);
     return (
       <div className="form-group col-md-6">
         <label htmlFor="nature">Field type</label>

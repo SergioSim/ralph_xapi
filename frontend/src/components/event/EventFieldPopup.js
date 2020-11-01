@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import feather from 'feather-icons/dist/feather';
 import { eventNature, booleanNatures} from '../../common';
 
 class EventFieldPopup extends Component {
@@ -6,36 +7,57 @@ class EventFieldPopup extends Component {
     super(props);
   }
 
+  componentDidUpdate(){
+    feather.replace();
+  }
+
   getProperties() {
-    if (!booleanNatures.includes(this.props.field.nature)) {
-      return null;
-    }
     if (this.props.field.nature == eventNature.IPV4) {
-      const ipv4Nature = this.props.natures.get(eventNature.IPV4);
-      const nature = ipv4Nature.get(this.props.field.nature_id);
-      return <div>
-      <h6 className="m-0"> Properties: </h6>
-      Exploded: <span className="badge badge-secondary">{nature.exploded ? "True" : "False"}</span>
-      <hr/>
-    </div>
+      const nature = this.props.natures.get(eventNature.IPV4).get(this.props.field.nature_id);
+      return (
+        <div>
+          <h6 className="m-0"> Properties: </h6>
+          Exploded: <span className="badge badge-secondary">{nature.exploded ? "True" : "False"}</span>
+          <hr/>
+        </div>
+      );
     }
     if (this.props.field.nature == eventNature.URL) {
-      const urlNature = this.props.natures.get(eventNature.URL);
-      const nature = urlNature.get(this.props.field.nature_id);
-      return <div>
-      <h6 className="m-0"> Properties: </h6>
-      Relative: <span className="badge badge-secondary">{nature.relative ? "True" : "False"}</span>
-      <hr/>
-    </div>
+      const nature = this.props.natures.get(eventNature.URL).get(this.props.field.nature_id);
+      return (
+        <div>
+          <h6 className="m-0"> Properties: </h6>
+          Relative: <span className="badge badge-secondary">{nature.relative ? "True" : "False"}</span>
+          <hr/>
+        </div>
+      );
     }
     if (this.props.field.nature == eventNature.INTEGER) {
-      const urlNature = this.props.natures.get(eventNature.INTEGER);
-      const nature = urlNature.get(this.props.field.nature_id);
-      return <div>
-      <h6 className="m-0"> Properties: </h6>
-      Strict: <span className="badge badge-secondary">{nature.strict ? "True" : "False"}</span>
-      <hr/>
-    </div>
+      const nature = this.props.natures.get(eventNature.INTEGER).get(this.props.field.nature_id);
+      return (
+        <div>
+          <h6 className="m-0"> Properties: </h6>
+          Strict: <span className="badge badge-secondary">{nature.strict ? "True" : "False"}</span>
+          <hr/>
+        </div>
+      );
+    }
+    if (this.props.field.nature == eventNature.LIST) {
+      const nature = this.props.natures.get(eventNature.LIST).get(this.props.field.nature_id);
+      const event_field = this.props.event.fields.get(nature.event_field);
+      if(!event_field) return;
+      const requiredColor = event_field.required ? "#f44336" : "#ccc";
+      const nullableColor = event_field.allow_none ? "#ccc" : "#2196f3";
+      return (
+        <div>
+          <h6 className="m-0"> Properties: </h6>
+          <span className="text-muted">List of: </span>
+          <span className="mouse-pointer" data-feather="x-circle" style={{height: "1.2em", color: nullableColor}}></span>
+          <span className="mouse-pointer" data-feather="alert-triangle" style={{height: "1.2em", color: requiredColor}}></span>
+          {event_field.name} <span style={{color: "#3eac34"}}>[{event_field.nature}]</span>
+          <hr/>
+        </div>
+      );
     }
   }
 
