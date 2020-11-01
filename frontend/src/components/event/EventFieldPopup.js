@@ -54,13 +54,18 @@ class EventFieldPopup extends Component {
               <div className="col-md-3">
                 <div className="list-group">
                   {field.nature == "Nested" || field == this.props.event
-                  ? <button className="btn btn-success my-1" onClick={() => this.props.toggleShowAddField(field)}>Create</button>
+                  ? <div>
+                      <button className="btn btn-success my-1" onClick={() => this.props.toggleShowAddField(field)}>Create</button>
+                      <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowExcluded()}>
+                        {this.props.showExcluded ? "Hide Excluded" : "Show Excluded"}
+                      </button>
+                    </div>
                   : null}
                   {field != this.props.event
-                  ? <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowAddField(field)}>Update</button>
-                  : null}
-                  {field != this.props.event
-                  ? <button className="btn btn-danger my-1" onClick={() => this.props.deleteEventField(field)}>Delete</button>
+                  ? <div>
+                      <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowAddField(field)}>Update</button>
+                      <button className="btn btn-danger my-1" onClick={() => this.props.deleteEventField(field)}>Delete</button>
+                    </div>
                   : null}
                 </div>
               </div>

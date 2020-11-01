@@ -14,7 +14,8 @@ class EventGraph extends Component {
         left: 0,
         opacity: 0
       },
-      tooltipField: null
+      tooltipField: null,
+      showExcluded: true,
     }
     this.graphRef = React.createRef();
     this.tooltipChange = false;
@@ -37,6 +38,9 @@ class EventGraph extends Component {
     const name = this.props.event.name;
     const children = [];
     this.props.event.fields.forEach(field => {
+      if(!this.state.showExcluded && field.excluded){
+        return;
+      }
       children.push({name: field.name, value: field});
     })
     children.sort((a, b) => {
@@ -115,14 +119,18 @@ class EventGraph extends Component {
         .attr("x", -6)
         .attr("y", -12);
 
-    node.append("text")
+    const text = node.append("text")
         .attr("dy", "0.31em")
         .attr("x", d => d.children ? -6 : 36)
         .attr("text-anchor", d => d.children ? "end" : "start")
-        .text(d => d.data.name)
-        .append("tspan")
+        .style("fill", d => d.data.value.excluded ? "#ccc" : "#212529")
+        .text(d => d.data.name);
+
+    text.append("tspan")
           .style("fill", "#3eac34")
           .text(d => ` [${this.getNatureFromNode(d.data.value)}]`);
+    
+    text.clone(true).lower().attr("stroke", "white");
   }
 
   getNatureFromNode(node){
@@ -174,6 +182,10 @@ class EventGraph extends Component {
     });
   }
 
+  toggleShowExcluded() {
+    this.setState((state, props) => ({showExcluded: !state.showExcluded}));
+  }
+
   render() {
     return (
       <div>
@@ -184,6 +196,8 @@ class EventGraph extends Component {
         style={this.state.tooltipStyle}
         toggleShowAddField={(field) => this.toggleShowAddField(field)}
         deleteEventField={(field) => this.deleteEventField(field)}
+        showExcluded={this.state.showExcluded}
+        toggleShowExcluded={(showExcluded) => this.toggleShowExcluded(showExcluded)}
         />
         <svg id="event-graph" ref={this.graphRef}></svg>
       </div>
