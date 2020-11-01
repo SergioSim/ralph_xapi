@@ -5,6 +5,7 @@ import Api from '../../services/api.service';
 import $ from 'jquery'
 import { eventNature, booleanNatures, notSpecialNatures } from '../../common'
 import CommonFieldCheckBox from './CommonFieldCheckBox'
+import NatureSelect from './NatureSelect'
 
 
 class CreateEventField extends Component {
@@ -217,6 +218,7 @@ class CreateEventField extends Component {
     this.api.createEventField(body).then(eventField => {
       if (!eventField) return;
       alertService.success('EventField: "' + eventField.name + '" created with success!');
+      document.getElementById("eventFieldCreateForm").reset();
       this.setState({
         name: "",
         nature: eventNature.STRING,
@@ -231,7 +233,6 @@ class CreateEventField extends Component {
       })
       this.editor.setContent('');
       this.props.updateField(eventField);
-      document.getElementById("eventFieldCreateForm").reset();
     });
   }
 
@@ -260,19 +261,10 @@ class CreateEventField extends Component {
                     <input type="text" name="name" id="name" className="form-control" value={this.state.name}
                             onChange={(event) => this.handleFieldChange(event, "name")} required/>
                   </div>
-                  <div className="form-group col-md-6">
-                    <label htmlFor="nature">Field type</label>
-                    <select name="nature" className="custom-select" value={this.state.nature}
-                            onChange={(event) => this.handleFieldChange(event, "nature")} required>
-                      {(() => {
-                        const natures = [];
-                        Object.values(eventNature).forEach(val => natures.push(
-                          <option value={val} key={"nature" + val}>{val}</option>
-                        ));
-                        return natures;
-                      })()}\
-                    </select>
-                  </div>
+                  <NatureSelect
+                    nature={this.state.nature}
+                    handleFieldChange={(e, name) => this.handleFieldChange(e, name)}
+                  />
                 </div>
                 <div className="form-row">
                   <div className="form-group col-md-6">
