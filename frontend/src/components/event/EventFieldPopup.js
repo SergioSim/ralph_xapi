@@ -52,23 +52,21 @@ class EventFieldPopup extends Component {
           <div className="popover-body">
             <div className="row">
               <div className="col-md-3">
-                <div className="list-group">
-                  {field.nature == "Nested" || field == this.props.event
-                  ? <div>
-                      <button className="btn btn-success my-1" onClick={() => this.props.toggleShowAddField(field)}>Create</button>
-                      <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowExcluded()}>
-                        {this.props.showExcluded ? "Hide Excluded" : "Show Excluded"}
-                      </button>
-                    </div>
-                  : null}
-                  {field != this.props.event
-                  ? <div>
-                      <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowAddField(field)}>Update</button>
-                      <button className="btn btn-danger my-1" onClick={() => this.props.deleteEventField(field)}>Delete</button>
-                    </div>
-                  : null}
+                {field.nature == "Nested" || field == this.props.event
+                ? <div className="list-group">
+                    <button className="btn btn-success my-1" onClick={() => this.props.toggleShowAddField(field)}>Create</button>
+                    <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowExcluded()}>
+                      {this.props.showExcluded ? "Hide Excluded" : "Show Excluded"}
+                    </button>
+                  </div>
+                : null}
+                {field != this.props.event
+                ? <div className="list-group">
+                    <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowAddField(field)}>Update</button>
+                    <button className="btn btn-danger my-1" onClick={() => this.props.deleteEventField(field)}>Delete</button>
+                  </div>
+                : null}
                 </div>
-              </div>
               <div className="col-md-9">
                 {properties}
               <h6>Description: </h6>

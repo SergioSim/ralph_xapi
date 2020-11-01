@@ -39,17 +39,22 @@ class App extends Component {
       this.setState((state, props) => ({
         natures: state.natures.set(eventNature.IPV4, new Map(ipv4.map(x => [x.id, x])))
       }));
-    })
+    });
     this.api.fetchUrlNature().then(url => {
       this.setState((state, props) => ({
         natures: state.natures.set(eventNature.URL, new Map(url.map(x => [x.id, x])))
       }));
-    })
+    });
     this.api.fetchIntegerNature().then(integer => {
       this.setState((state, props) => ({
         natures: state.natures.set(eventNature.INTEGER, new Map(integer.map(x => [x.id, x])))
       }));
-    })
+    });
+    this.api.fetchListNature().then(list => {
+      this.setState((state, props) => ({
+        natures: state.natures.set(eventNature.LIST, new Map(list.map(x => [x.id, x])))
+      }));
+    });
   }
 
   fetchEventFields(iEvents){

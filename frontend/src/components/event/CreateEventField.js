@@ -4,6 +4,7 @@ import { alertService } from '../../services/alert.service';
 import Api from '../../services/api.service';
 import $ from 'jquery'
 import { eventNature, booleanNatures, notSpecialNatures } from '../../common'
+import CommonFieldCheckBox from './CommonFieldCheckBox'
 
 
 class CreateEventField extends Component {
@@ -13,7 +14,6 @@ class CreateEventField extends Component {
 		this.state = {
       name: "",
       nature: eventNature.STRING,
-      nature_fields: {},
       description: "",
       required: true,
       allow_none: false,
@@ -21,20 +21,28 @@ class CreateEventField extends Component {
       exploded: true,
       relative: true,
       strict: true,
+      event_field: ""
     }
+    this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
   componentDidMount(){
     $('#createEventModal').modal({show: this.props.hidden});
-    window.addEventListener("keydown", ev => {
-      if(this.props.hidden && ev.key == "Escape"){
-        this.props.toggleShowAddField();
-      }
-    });
+    this.keydownListener = window.addEventListener('keydown', this.handleKeyDown);
+  }
+
+  componentWillUnmount(){
+    window.removeEventListener('keydown', this.handleKeyDown)
   }
 
   componentDidUpdate(){
     $('#createEventModal').modal({show: this.props.hidden})
+  }
+
+  handleKeyDown(ev) {
+    if(this.props.hidden && ev.key == "Escape") {
+      this.props.toggleShowAddField();
+    }
   }
 
   handleEditorChange(content, editor){
@@ -68,7 +76,39 @@ class CreateEventField extends Component {
     }
     if(this.state.nature == eventNature.LIST){
       return (
-        <span>Input: event_field</span>
+        <div className="form-group form-check">
+          <label className="form-check-label" htmlFor="event_field">
+            EventField
+          </label>
+          <select className="custom-select" size="5" value={this.state.event_field} id="event_field" name="event_field"
+                    onChange={(e)=> this.handleFieldChange(e, "event_field")} required>
+              {(() => {
+                const fields = [<option disabled value="" key="0"> -- select a field -- </option>];
+                this.props.event.fields.forEach(field => {
+                  if (!field.excluded) {
+                    return;
+                  }
+                  const required = field.required ? "True" : "False";
+                  const nullable = field.allow_none ? "True" : "False";
+                  let additionalProps = `required: ${required}, nullable: ${nullable}`;
+                  if (booleanNatures.includes(field.nature)) {
+                    let nature = this.props.natures.get(field.nature).get(field.nature_id);
+                    nature.forEach(function(value, key) {
+                      if(key == "id") return;
+                      additionalProps += `, ${key}: ${value}`;
+                    });
+                  }
+                  additionalProps = `{${additionalProps}}`;
+                  fields.push(
+                    <option value={field.id} key={field.name + field.id}>
+                      {field.name} [{field.nature}] {additionalProps}
+                    </option>
+                  );
+                });
+                return fields;
+              })()}
+          </select>
+        </div>
       )
     }
     if(this.state.nature == eventNature.INTEGER){
@@ -130,6 +170,7 @@ class CreateEventField extends Component {
       description: this.state.description,
       required: this.state.required,
       allow_none: this.state.allow_none,
+      excluded: this.state.excluded
     }
     if (notSpecialNatures.includes(this.state.nature)) {
       this.sendSubmit(body);
@@ -154,12 +195,22 @@ class CreateEventField extends Component {
       valueNameRoute.route({[valueNameRoute.name]: valueNameRoute.value}).then(nature => {
         if(!nature) return;
         alertService.success('New ' + this.state.nature + ' Nature created: "' + nature.id + '"!');
-        body.nature_id = nature.id;
         this.props.updateNature(this.state.nature, nature);
+        body.nature_id = nature.id;
         this.sendSubmit(body);
       });
+      return;
     }
-    
+    if (this.state.nature == eventNature.LIST) {
+      this.api.createListNature({event_field: this.state.event_field}).then(nature => {
+        if(!nature) return;
+        alertService.success(`New ${this.state.nature} Nature created: ${nature.id}-${nature.event_field}!`);
+        this.props.updateNature(this.state.nature, nature);
+        body.nature_id = nature.id;
+        this.sendSubmit(body);
+      });
+      return;
+    }
   }
 
   sendSubmit(body){
@@ -169,13 +220,14 @@ class CreateEventField extends Component {
       this.setState({
         name: "",
         nature: eventNature.STRING,
-        nature_fields: {},
         description: "",
         required: true,
         allow_none: false,
+        excluded: false,
         exploded: true,
         relative: true,
         strict: true,
+        event_field: ""
       })
       this.editor.setContent('');
       this.props.updateField(eventField);
@@ -233,22 +285,12 @@ class CreateEventField extends Component {
                     />
                   </div>
                   <div className="form-group col-md-6 mt-n1">
-                    <div className="form-check pl-0 mb-1">
-                      <div className="form-check form-check-inline">
-                        <input className="form-check-input" type="checkbox" name="required" id="required"
-                          checked={this.state.required} onChange={(e)=> this.toggleFieldChange(e, "required")}/>
-                        <label className="form-check-label" htmlFor="required">
-                          <span className="mouse-pointer" data-feather="alert-triangle" style={{height: "1.2em", color: "#f44336"}}></span> Required
-                        </label>
-                      </div>
-                      <div className="form-check form-check-inline">
-                        <input className="form-check-input" type="checkbox" name="allow_none" id="allow_none"
-                          checked={this.state.allow_none} onChange={(e)=> this.toggleFieldChange(e, "allow_none")}/>
-                        <label className="form-check-label" htmlFor="allow_none">
-                          <span className="mouse-pointer" data-feather="circle" style={{height: "1.2em", color: "#2196f3"}}></span> Allow None
-                        </label>
-                      </div>
-                    </div>
+                    <CommonFieldCheckBox
+                      required={this.state.required}
+                      allow_none={this.state.allow_none}
+                      excluded={this.state.excluded}
+                      toggleFieldChange={(e, name) => this.toggleFieldChange(e, name)}
+                    />
                     {this.renderNatureFields()}
                   </div>
                 </div>

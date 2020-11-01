@@ -57,6 +57,10 @@ export default class Api {
     return this.apiFetch('api/event/nature/integer/');
   }
 
+  fetchListNature() {
+    return this.apiFetch('api/event/nature/list/');
+  }
+
   createEvent(body, expectedStatus = 201) {
     return this.apiFetch('api/event/', "POST", body, expectedStatus);
   }
@@ -75,6 +79,10 @@ export default class Api {
 
   createIntegerNature(body, expectedStatus = 201) {
     return this.apiFetch('api/event/nature/integer/', "POST", body, expectedStatus);
+  }
+
+  createListNature(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/nature/list/', "POST", body, expectedStatus);
   }
 
   updateEvent(eventId, body, expectedStatus = 200) {

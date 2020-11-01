@@ -18,4 +18,6 @@ urlpatterns = [
     path("nature/url/<int:pk>", views.UrlNatureDetail.as_view()),
     path("nature/integer/", views.IntegerNatureListCreate.as_view()),
     path("nature/integer/<int:pk>", views.IntegerNatureDetail.as_view()),
+    path("nature/list/", views.ListNatureListCreate.as_view()),
+    path("nature/list/<int:pk>", views.ListNatureDetail.as_view()),
 ]
