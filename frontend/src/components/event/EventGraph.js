@@ -4,6 +4,7 @@ import * as d3 from "d3";
 import feather from 'feather-icons/dist/feather';
 import { data } from 'jquery';
 import EventFieldPopup from './EventFieldPopup';
+import { eventNature } from '../../common';
 
 class EventGraph extends Component {
   constructor(props) {
@@ -33,36 +34,53 @@ class EventGraph extends Component {
     this.tooltipChange = false;
   }
 
-  updateGraph() {
-    const width = 954;
-    const name = this.props.event.name;
-    const children = [];
-    this.props.event.fields.forEach(field => {
+  prepareGraphData(event, arr) {
+    event.fields.forEach(field => {
       if(!this.state.showExcluded && field.excluded){
         return;
       }
-      children.push({name: field.name, value: field});
-    })
-    children.sort((a, b) => {
+      const children = [];
+      if (field.nature == eventNature.NESTED) {
+        const nature = this.props.natures.get(eventNature.NESTED).get(field.nature_id);
+        if(!nature) return;
+        const nested = this.props.events.get(nature.event);
+        console.log(nested, "nested1");
+        this.prepareGraphData(nested, children);
+      }
+      arr.push({name: field.name, value: field, children});
+    });
+    arr.sort((a, b) => {
       var textA = a.name.toUpperCase();
       var textB = b.name.toUpperCase();
       return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
     });
+    return arr;
+  }
+
+  updateGraph() {
+    const width = 954;
+    const name = this.props.event.name;
+    // const children = [];
+    // this.props.event.fields.forEach(field => {
+    //   if(!this.state.showExcluded && field.excluded){
+    //     return;
+    //   }
+    //   children.push({name: field.name, value: field, children: []});
+    // })
+    // children.sort((a, b) => {
+    //   var textA = a.name.toUpperCase();
+    //   var textB = b.name.toUpperCase();
+    //   return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
+    // });
+    const children = this.prepareGraphData(this.props.event, []);
     const root = this.tree({name, children, value: this.props.event}, width);
-    let x0 = Infinity;
-    let x1 = -x0;
-    root.each(d => {
-      if (d.x > x1) x1 = d.x;
-      if (d.x < x0) x0 = d.x;
-    });
-    const startX = - root.dy / 1.5
     d3.selectAll(this.graphRef.current.children).remove();
-    const svg = d3.select(this.graphRef.current).attr("viewBox", [startX, 0, width, root.dx * 2]);
-    this.populateSvg(svg, root, x0);
+    const svg = d3.select(this.graphRef.current).attr("viewBox", [-150, 0, width, root.dx * 2]);
+    this.populateSvg(svg, root);
     feather.replace();
   }
 
-  populateSvg(svg, root, x0) {
+  populateSvg(svg, root) {
     svg.on("click", () => this.removeTooltip());
     const g = svg.append("g");
     
@@ -142,8 +160,8 @@ class EventGraph extends Component {
 
   tree(data, width) {
     const root = d3.hierarchy(data);
-    root.dx = 30;
-    root.dy = (width / (root.height + 1)) / 2;
+    root.dx = 40;
+    root.dy = 500;
     return d3.tree().nodeSize([root.dx, root.dy])(root);
   }
 
@@ -191,6 +209,7 @@ class EventGraph extends Component {
       <div>
         <EventFieldPopup
         event={this.props.event}
+        events={this.props.events}
         natures={this.props.natures}
         field={this.state.tooltipField}
         style={this.state.tooltipStyle}

@@ -78,7 +78,7 @@ class NestedNature(models.Model):
     """Represents marshmallow.fields.Nested class"""
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
-    exclude = models.CharField(max_length=200)
+    exclude = models.CharField(max_length=200, null=True, blank=True)
 
 
 class DictNature(models.Model):

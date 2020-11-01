@@ -65,6 +65,10 @@ export default class Api {
     return this.apiFetch('api/event/nature/dict/');
   }
 
+  fetchNestedNature() {
+    return this.apiFetch('api/event/nature/nested/');
+  }
+
   createEvent(body, expectedStatus = 201) {
     return this.apiFetch('api/event/', "POST", body, expectedStatus);
   }
@@ -91,6 +95,10 @@ export default class Api {
 
   createDictNature(body, expectedStatus = 201) {
     return this.apiFetch('api/event/nature/dict/', "POST", body, expectedStatus);
+  }
+
+  createNestedNature(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/nature/nested/', "POST", body, expectedStatus);
   }
 
   updateEvent(eventId, body, expectedStatus = 200) {

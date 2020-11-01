@@ -55,9 +55,14 @@ class App extends Component {
         natures: state.natures.set(eventNature.LIST, new Map(list.map(x => [x.id, x])))
       }));
     });
-    this.api.fetchDictNature().then(list => {
+    this.api.fetchDictNature().then(dict => {
       this.setState((state, props) => ({
-        natures: state.natures.set(eventNature.DICT, new Map(list.map(x => [x.id, x])))
+        natures: state.natures.set(eventNature.DICT, new Map(dict.map(x => [x.id, x])))
+      }));
+    });
+    this.api.fetchNestedNature().then(nested => {
+      this.setState((state, props) => ({
+        natures: state.natures.set(eventNature.NESTED, new Map(nested.map(x => [x.id, x])))
       }));
     });
   }

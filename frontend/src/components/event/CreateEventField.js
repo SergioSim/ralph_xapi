@@ -26,6 +26,7 @@ class CreateEventField extends Component {
       event_field: "",
       keys: "",
       values: "",
+      nested: "",
     };
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
@@ -67,10 +68,24 @@ class CreateEventField extends Component {
     if(notSpecialNatures.includes(this.state.nature)){
       return;
     }
-    // TODO: Render for each nature it's custom fields
     if(this.state.nature == eventNature.NESTED){
       return (
-        <span>Input: event_id, exclude</span>
+        <div className="form-group form-check">
+          <select className="custom-select" size="5" value={this.state.nested}
+                  onChange={(e) => this.handleFieldChange(e, "nested")}>
+            <option disabled value=""> -- select an event -- </option>
+            {(() => {
+              const events = [];
+              this.props.events.forEach(event => {
+                if (event.id == this.props.event.id) {
+                  return;
+                }
+                events.push(<option value={event.id} key={event.name + event.id}>{event.name}</option>)
+              });
+              return events;
+            })()}
+          </select>
+        </div>
       )
     }
     if(this.state.nature == eventNature.DICT){
@@ -220,6 +235,15 @@ class CreateEventField extends Component {
       });
       return;
     }
+    if (this.state.nature == eventNature.NESTED) {
+      this.api.createNestedNature({event: this.state.nested, exclude: ""}).then(nature => {
+        if(!nature) return;
+        alertService.success(`New ${this.state.nature} Nature created: ${nature.id}-${nature.event}!`);
+        this.props.updateNature(this.state.nature, nature);
+        body.nature_id = nature.id;
+        this.sendSubmit(body);
+      });
+    }
   }
 
   sendSubmit(body){
@@ -240,6 +264,7 @@ class CreateEventField extends Component {
         event_field: "",
         keys: "",
         values: "",
+        nested: "",
       })
       this.editor.setContent('');
       this.props.updateField(eventField);

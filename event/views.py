@@ -2,11 +2,14 @@
 from django.views import generic
 from rest_framework import generics
 
-from .models import Event, EventField, IPv4Nature, UrlNature, IntegerNature, ListNature, DictNature
+from .models import (
+    Event, EventField, IPv4Nature, UrlNature, IntegerNature, ListNature, DictNature, NestedNature
+)
 from .serializers import (
     EventFieldSerializer, EventSerializer, IPv4NatureSerializer,
     UrlNatureSerializer, IntegerNatureSerializer, ListNatureSerializer,
-    DictNatureSerializer)
+    DictNatureSerializer, NestedNatureSerializer
+)
 
 # pylint: disable=no-member,too-many-ancestors
 
@@ -106,6 +109,20 @@ class DictNatureDetail(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = DictNature.objects.all()
     serializer_class = DictNatureSerializer
+
+
+class NestedNatureListCreate(generics.ListCreateAPIView):
+    """List and create NestedNature"""
+
+    queryset = NestedNature.objects.select_related().all()
+    serializer_class = NestedNatureSerializer
+
+
+class NestedNatureDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get Update and delete NestedNature"""
+
+    queryset = NestedNature.objects.all()
+    serializer_class = NestedNatureSerializer
 
 
 class IndexView(generic.ListView):

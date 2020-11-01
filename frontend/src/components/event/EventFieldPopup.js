@@ -63,8 +63,6 @@ class EventFieldPopup extends Component {
       if(!nature) return;
       const event_field = this.props.event.fields.get(nature.event_field);
       if(!event_field) return;
-      const nullableColor = event_field.allow_none ? "#ccc" : "#2196f3";
-      const requiredColor = event_field.required ? "#f44336" : "#ccc";
       return (
         <div>
           <h6 className="m-0"> Properties: </h6>
@@ -79,13 +77,23 @@ class EventFieldPopup extends Component {
       if(!nature) return;
       const keys = this.props.event.fields.get(nature.keys);
       const values = this.props.event.fields.get(nature.values);
-      const nullableColor = ["#ccc", "#2196f3"];
-      const requiredColor = ["#f44336", "#ccc"];
       return (
         <div>
           <h6 className="m-0"> Properties: </h6>
           <span className="text-muted">Dict of: </span>
           Keys: {this.getField(keys)} <br/>Values: {this.getField(values)}
+          <hr/>
+        </div>
+      );
+    }
+    if (this.props.field.nature == eventNature.NESTED) {
+      const nature = this.props.natures.get(eventNature.NESTED).get(this.props.field.nature_id);
+      if(!nature) return;
+      const event = this.props.events.get(nature.event);
+      return (
+        <div>
+          <h6 className="m-0"> Properties: </h6>
+          <span className="text-muted">Nest event: </span> {event.name}
           <hr/>
         </div>
       );
@@ -105,7 +113,7 @@ class EventFieldPopup extends Component {
           <div className="popover-body">
             <div className="row">
               <div className="col-md-3">
-                {field.nature == "Nested" || field == this.props.event
+                {field == this.props.event
                 ? <div className="list-group">
                     <button className="btn btn-success my-1" onClick={() => this.props.toggleShowAddField(field)}>Create</button>
                     <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowExcluded()}>

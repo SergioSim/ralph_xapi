@@ -177,6 +177,7 @@ class Event extends Component {
         <CreateEventField
           hidden={this.state.showAddField}
           event={this.props.event}
+          events={this.props.events}
           natures={this.props.natures}
           toggleShowAddField={(event) => this.toggleShowAddField(event)}
           updateField={(field) => this.updateField(field)}

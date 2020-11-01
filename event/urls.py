@@ -22,4 +22,6 @@ urlpatterns = [
     path("nature/list/<int:pk>", views.ListNatureDetail.as_view()),
     path("nature/dict/", views.DictNatureListCreate.as_view()),
     path("nature/dict/<int:pk>", views.DictNatureDetail.as_view()),
+    path("nature/nested/", views.NestedNatureListCreate.as_view()),
+    path("nature/nested/<int:pk>", views.NestedNatureDetail.as_view()),
 ]
