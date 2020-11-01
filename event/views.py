@@ -2,8 +2,8 @@
 from django.views import generic
 from rest_framework import generics
 
-from .models import Event, EventField, IPv4Nature
-from .serializers import EventFieldSerializer, EventSerializer, IPv4NatureSerializer
+from .models import Event, EventField, IPv4Nature, UrlNature, IntegerNature
+from .serializers import EventFieldSerializer, EventSerializer, IPv4NatureSerializer, UrlNatureSerializer, IntegerNatureSerializer
 
 # pylint: disable=no-member,too-many-ancestors
 
@@ -47,6 +47,34 @@ class IPv4NatureDetail(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = IPv4Nature.objects.all()
     serializer_class = IPv4NatureSerializer
+
+
+class UrlNatureListCreate(generics.ListCreateAPIView):
+    """List and create UrlNature"""
+
+    queryset = UrlNature.objects.select_related().all()
+    serializer_class = UrlNatureSerializer
+
+
+class UrlNatureDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get Update and delete UrlNature"""
+
+    queryset = UrlNature.objects.all()
+    serializer_class = UrlNatureSerializer
+
+
+class IntegerNatureListCreate(generics.ListCreateAPIView):
+    """List and create IntegerNature"""
+
+    queryset = IntegerNature.objects.select_related().all()
+    serializer_class = IntegerNatureSerializer
+
+
+class IntegerNatureDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get Update and delete IntegerNature"""
+
+    queryset = IntegerNature.objects.all()
+    serializer_class = IntegerNatureSerializer
 
 
 class IndexView(generic.ListView):

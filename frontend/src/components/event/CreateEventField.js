@@ -73,12 +73,34 @@ class CreateEventField extends Component {
     }
     if(this.state.nature == eventNature.INTEGER){
       return (
-        <span>Input: strict</span>
+        <div className="form-group form-check">
+          <input className="form-check-input" type="checkbox" name="strict" id="strict"
+            checked={this.state.strict} onChange={(e)=> this.toggleFieldChange(e, "strict")}/>
+          <label className="form-check-label" htmlFor="strict">
+            Strict
+          </label>
+          <p>
+            <small className="text-muted">
+              If selected, only integer types are valid. Otherwise, any value castable to int is valid.
+            </small>
+          </p>
+        </div>
       )
     }
     if(this.state.nature == eventNature.URL){
       return (
-        <span>Input: relative</span>
+        <div className="form-group form-check">
+          <input className="form-check-input" type="checkbox" name="relative" id="relative"
+            checked={this.state.relative} onChange={(e)=> this.toggleFieldChange(e, "relative")}/>
+          <label className="form-check-label" htmlFor="relative">
+            Relative
+          </label>
+          <p>
+            <small className="text-muted">
+              Whether to allow relative URLs.
+            </small>
+          </p>
+        </div>
       )
     }
     if(this.state.nature == eventNature.IPV4){
@@ -86,7 +108,7 @@ class CreateEventField extends Component {
         <div className="form-group form-check">
           <input className="form-check-input" type="checkbox" name="exploded" id="exploded"
             checked={this.state.exploded} onChange={(e)=> this.toggleFieldChange(e, "exploded")}/>
-          <label className="form-check-label" htmlFor="Allow None">
+          <label className="form-check-label" htmlFor="exploded">
             Exploded
           </label>
           <p>
@@ -94,7 +116,7 @@ class CreateEventField extends Component {
               If selected, serialize ip address in long form, ie. with groups consisting entirely of zeros included.
             </small>
           </p>
-        </div>        
+        </div>
       )
     }
   }
@@ -216,13 +238,13 @@ class CreateEventField extends Component {
                         <input className="form-check-input" type="checkbox" name="required" id="required"
                           checked={this.state.required} onChange={(e)=> this.toggleFieldChange(e, "required")}/>
                         <label className="form-check-label" htmlFor="required">
-                          <span className="mouse-pointer" data-feather="alert-octagon" style={{height: "1.2em", color: "#f44336"}}></span> Required
+                          <span className="mouse-pointer" data-feather="alert-triangle" style={{height: "1.2em", color: "#f44336"}}></span> Required
                         </label>
                       </div>
                       <div className="form-check form-check-inline">
                         <input className="form-check-input" type="checkbox" name="allow_none" id="allow_none"
                           checked={this.state.allow_none} onChange={(e)=> this.toggleFieldChange(e, "allow_none")}/>
-                        <label className="form-check-label" htmlFor="Allow None">
+                        <label className="form-check-label" htmlFor="allow_none">
                           <span className="mouse-pointer" data-feather="circle" style={{height: "1.2em", color: "#2196f3"}}></span> Allow None
                         </label>
                       </div>

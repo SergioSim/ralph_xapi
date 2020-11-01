@@ -10,15 +10,30 @@ class EventFieldPopup extends Component {
     if (!booleanNatures.includes(this.props.field.nature)) {
       return null;
     }
-    console.log(this.props.field.nature, eventNature.IPV4, this.props.field.nature == eventNature.IPV4);
     if (this.props.field.nature == eventNature.IPV4) {
       const ipv4Nature = this.props.natures.get(eventNature.IPV4);
-      console.log(ipv4Nature);
       const nature = ipv4Nature.get(this.props.field.nature_id);
-      console.log("nature", nature, "id", this.props.field.nature_id);
       return <div>
       <h6 className="m-0"> Properties: </h6>
       Exploded: <span className="badge badge-secondary">{nature.exploded ? "True" : "False"}</span>
+      <hr/>
+    </div>
+    }
+    if (this.props.field.nature == eventNature.URL) {
+      const urlNature = this.props.natures.get(eventNature.URL);
+      const nature = urlNature.get(this.props.field.nature_id);
+      return <div>
+      <h6 className="m-0"> Properties: </h6>
+      Relative: <span className="badge badge-secondary">{nature.relative ? "True" : "False"}</span>
+      <hr/>
+    </div>
+    }
+    if (this.props.field.nature == eventNature.INTEGER) {
+      const urlNature = this.props.natures.get(eventNature.INTEGER);
+      const nature = urlNature.get(this.props.field.nature_id);
+      return <div>
+      <h6 className="m-0"> Properties: </h6>
+      Strict: <span className="badge badge-secondary">{nature.strict ? "True" : "False"}</span>
       <hr/>
     </div>
     }
