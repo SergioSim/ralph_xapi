@@ -123,6 +123,7 @@ class EventFieldPopup extends Component {
                 : null}
                 {field != this.props.event
                 ? <div className="list-group">
+                    <button className="btn btn-warning my-1" onClick={() => this.props.toggleShowValidateField(field)}>Validate</button>
                     <button className="btn btn-primary my-1" onClick={() => this.props.toggleShowAddField(field)}>Update</button>
                     <button className="btn btn-danger my-1" onClick={() => this.props.deleteEventField(field)}>Delete</button>
                   </div>

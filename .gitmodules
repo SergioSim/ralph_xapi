@@ -1,3 +1,6 @@
 [submodule "PythonBuddySandbox"]
 	path = PythonBuddySandbox
 	url = https://github.com/SergioSim/PythonBuddySandbox.git
+[submodule "PythonBuddySandboxed"]
+	path = PythonBuddySandboxed
+	url = https://github.com/SergioSim/PythonBuddySandboxed.git

@@ -28,6 +28,7 @@ class EventFieldSerializer(serializers.ModelSerializer):
             "description",
             "required",
             "allow_none",
+            "validate",
             "excluded",
         )
 
@@ -78,3 +79,10 @@ class IPv4NatureSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.IPv4Nature
         fields = ("id", "exploded")
+
+class EventFieldTestSerializer(serializers.ModelSerializer):
+    """EventFieldTest django model serializer"""
+
+    class Meta:
+        model = models.EventFieldTest
+        fields = ("id", "event_field", "input_data", "input_nature", "validation_exception")

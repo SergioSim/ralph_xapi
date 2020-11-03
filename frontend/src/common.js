@@ -14,6 +14,15 @@ export const eventNature = {
   IPV4:     "IPv4"
 }
 
+export const xAPINatures = {
+  OBJECT:   "Object",
+  LIST:     "List",
+  STRING:   "String",
+  NUMBER:   "Number",
+  BOOLEAN:  "Boolean",
+  NULL:     "Null",
+}
+
 export const booleanNatures = [
   eventNature.IPV4,
   eventNature.URL,

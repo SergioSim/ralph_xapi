@@ -13,7 +13,7 @@ class EventGraph extends Component {
       tooltipStyle: {
         top: 0,
         left: 0,
-        opacity: 0
+        display: "none"
       },
       tooltipField: null,
       showExcluded: true,
@@ -97,7 +97,7 @@ class EventGraph extends Component {
       this.setState({tooltipStyle: {
         top: tootip.top,
         left: tootip.left,
-        opacity: tootip.opacity,
+        display: tootip.display,
         transform: "translate(" + this.tooltipTransformX + "px, " + this.tooltipTransformY + "px)",
       }});
     }));
@@ -172,7 +172,7 @@ class EventGraph extends Component {
       tooltipStyle: {
         top: (event.layerY - this.tooltipTransformY - 50),
         left: (event.layerX - this.tooltipTransformX),
-        opacity: 1,
+        display: "block",
         transform: "translate(" + this.tooltipTransformX + "px, " + this.tooltipTransformY + "px)",
       },
       tooltipField: treeNode.data.value
@@ -186,17 +186,22 @@ class EventGraph extends Component {
       return;
     }
     this.tooltipChange = true;
-    this.setState({tooltipStyle: {opacity: 0}})
+    this.setState({tooltipStyle: {display: "none"}})
   }
 
   toggleShowAddField(field) {
-    this.setState({tooltipStyle: {opacity: 0}});
+    this.setState({tooltipStyle: {display: "none"}});
     this.props.toggleShowAddField(field);
+  }
+
+  toggleShowValidateField(field) {
+    this.setState({tooltipStyle: {display: "none"}});
+    this.props.toggleShowValidateField(field);
   }
 
   deleteEventField(field) {
     this.props.deleteEventField(field, () => {
-      this.setState({tooltipStyle: {opacity: 0}});
+      this.setState({tooltipStyle: {display: "none"}});
     });
   }
 
@@ -214,6 +219,7 @@ class EventGraph extends Component {
         field={this.state.tooltipField}
         style={this.state.tooltipStyle}
         toggleShowAddField={(field) => this.toggleShowAddField(field)}
+        toggleShowValidateField={(field) => this.toggleShowValidateField(field)}
         deleteEventField={(field) => this.deleteEventField(field)}
         showExcluded={this.state.showExcluded}
         toggleShowExcluded={(showExcluded) => this.toggleShowExcluded(showExcluded)}

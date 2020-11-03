@@ -15,6 +15,7 @@ default: help
 
 .env:
 	cp .env.dist .env
+	cp ./PythonBuddySandboxed/api/config.js.sample ./PythonBuddySandboxed/api/config.js
 
 # -- Docker/compose
 bootstrap: ## bootstrap the project for development
@@ -24,11 +25,13 @@ bootstrap: \
   dev
 .PHONY: bootstrap
 build: ## build the app container
+	@$(COMPOSE) build pythonbuddysandbox
 	@$(COMPOSE) build app
 .PHONY: build
 
 dev: ## start app
-	@$(COMPOSE) up app
+	@$(COMPOSE) up -d app
+	npm start --prefix ./PythonBuddySandboxed/
 .PHONY: dev
 
 # Nota bene: Black should come after isort just in case they don't agree...

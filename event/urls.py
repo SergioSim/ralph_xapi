@@ -24,4 +24,8 @@ urlpatterns = [
     path("nature/dict/<int:pk>", views.DictNatureDetail.as_view()),
     path("nature/nested/", views.NestedNatureListCreate.as_view()),
     path("nature/nested/<int:pk>", views.NestedNatureDetail.as_view()),
+    path("test/field/", views.EventFieldTestListCreate.as_view()),
+    path("test/field/<int:pk>", views.EventFieldTestDetail.as_view()),
+    path("test/field/event/<int:field_id>", views.test_field_by_event),
+    path("code/field/<int:pk>", views.code_field)
 ]

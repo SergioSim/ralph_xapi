@@ -5,6 +5,10 @@ services:
     image: mysql:5.7
     env_file:
       - .env
+  pythonbuddysandbox:
+    build:
+      context: ./PythonBuddySandbox/container/.
+    image: christophetd/docker-sandbox
   app:
     build:
       context: .

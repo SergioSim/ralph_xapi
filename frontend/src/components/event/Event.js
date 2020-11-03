@@ -4,6 +4,7 @@ import { alertService } from '../../services/alert.service';
 import Api from '../../services/api.service'
 import EventGraph from './EventGraph';
 import CreateEventField from "./CreateEventField";
+import ValidateEventField from "./ValidateEventField";
 
 class Event extends Component {
   constructor(props){
@@ -13,6 +14,8 @@ class Event extends Component {
       edit: false,
       event: this.props.event,
       showAddField: false,
+      showValidateField: false,
+      validateField: null
     }
   }
 
@@ -85,6 +88,12 @@ class Event extends Component {
     this.setState((state, props) => ({showAddField: !state.showAddField}));
   }
 
+  toggleShowValidateField(field = null){
+    this.setState((state, props) => ({
+      showValidateField: !state.showValidateField, validateField: field
+    }));
+  }
+
   updateEvent(event, callback){
     this.props.updateEvent(event, () => {
       this.setState((state, props) => {
@@ -96,6 +105,7 @@ class Event extends Component {
   updateField(field){
     const event = this.props.event;
     event.fields.set(field.id, field);
+    this.setState({validateField: field});
     this.updateEvent(event);
   }
 
@@ -183,11 +193,19 @@ class Event extends Component {
           updateField={(field) => this.updateField(field)}
           updateNature={(name, nature) => this.props.updateNature(name, nature)}
         />
+        <ValidateEventField
+          hidden={this.state.showValidateField}
+          event={this.props.event}
+          field={this.state.validateField}
+          toggleShowValidateField={(event) => this.toggleShowValidateField(event)}
+          updateField={(field) => this.updateField(field)}
+        />
         <EventGraph
           event={this.props.event}
           events={this.props.events}
           natures={this.props.natures}
           toggleShowAddField={(event) => this.toggleShowAddField(event)}
+          toggleShowValidateField={(field) => this.toggleShowValidateField(field)}
           deleteEventField={(field, callback) => this.deleteEventField(field, callback)}
         />
       </div>

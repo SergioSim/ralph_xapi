@@ -20,6 +20,7 @@ export default class Api {
     }
     return fetch(url, requestData).then(response => {
       if (response.status > 400) {
+        console.log("Something went wrong!");
         alertService.error(`Some thing is wrong :( Status: ${response.status}`);
         return;
       }
@@ -69,6 +70,10 @@ export default class Api {
     return this.apiFetch('api/event/nature/nested/');
   }
 
+  fetchEventFieldTestByEventField(id) {
+    return this.apiFetch('api/event/test/field/event/' + id);
+  }
+
   createEvent(body, expectedStatus = 201) {
     return this.apiFetch('api/event/', "POST", body, expectedStatus);
   }
@@ -101,15 +106,35 @@ export default class Api {
     return this.apiFetch('api/event/nature/nested/', "POST", body, expectedStatus);
   }
 
-  updateEvent(eventId, body, expectedStatus = 200) {
-    return this.apiFetch('api/event/' + eventId, "PUT", body, expectedStatus);
+  createEventFieldTest(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/test/field/', "POST", body, expectedStatus);
   }
 
-  deleteEvent(eventId, expectedStatus = 204) {
-    return this.apiFetch('api/event/' + eventId, "DELETE", null, expectedStatus, false);
+  updateEvent(id, body, expectedStatus = 200) {
+    return this.apiFetch('api/event/' + id, "PUT", body, expectedStatus);
   }
 
-  deleteEventField(eventFieldId, expectedStatus = 204) {
-    return this.apiFetch('api/event/field/' + eventFieldId, "DELETE", null, expectedStatus, false);
+  updateEventField(id, body, expectedStatus = 200) {
+    return this.apiFetch('api/event/field/' + id, "PATCH", body, expectedStatus);
+  }
+
+  updateEventFieldTest(id, body, expectedStatus = 200) {
+    return this.apiFetch('api/event/test/field/' + id, "PUT", body, expectedStatus);
+  }
+
+  deleteEvent(id, expectedStatus = 204) {
+    return this.apiFetch('api/event/' + id, "DELETE", null, expectedStatus, false);
+  }
+
+  deleteEventField(id, expectedStatus = 204) {
+    return this.apiFetch('api/event/field/' + id, "DELETE", null, expectedStatus, false);
+  }
+
+  deleteEventFieldTest(id, expectedStatus = 204) {
+    return this.apiFetch('api/event/test/field/' + id, "DELETE", null, expectedStatus, false);
+  }
+
+  validateEventField(id, expectedStatus = 200 ) {
+    return this.apiFetch('api/event/code/field/' + id, "POST", {}, expectedStatus);
   }
 }

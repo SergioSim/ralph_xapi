@@ -1,0 +1,17 @@
+"""Generated tests for EventField {{field.name}}"""
+from marshmallow import ValidationError
+
+def validate_{{ field.name }}({{ field.name }}):
+    {{ field.validate | safe }}
+
+def test(id, data):
+    try:
+    	return {"id": id, "output": validate_test(data), "error": False}
+    except ValidationError as err:
+        return {"id": id, "output": err.messages, "error": True}
+
+output = []
+{% for field_test in field_tests %}
+output.append(test({{ field_test.id }}, {{ field_test.input_data | safe }})){% endfor %}
+
+print(output)

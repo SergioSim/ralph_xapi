@@ -5,7 +5,7 @@ FROM python:3.8-slim as base
 #RUN pip install --upgrade pip
 RUN python -m pip install --upgrade pip ;\
     apt-get update && \
-    apt-get install -y gcc default-libmysqlclient-dev curl gnupg ca-certificates && \
+    apt-get install -y gcc default-libmysqlclient-dev curl gnupg ca-certificates iproute2 && \
     curl -L https://deb.nodesource.com/setup_12.x | bash  && \
     apt-get update -y  && \
     apt-get install -y nodejs && \

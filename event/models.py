@@ -158,3 +158,12 @@ class XAPIField(models.Model):
     event_fields = models.ManyToManyField(EventField)
     transform = models.TextField(null=True, blank=True)
     default = models.CharField(max_length=200, null=True, blank=True)
+
+
+class EventFieldTest(models.Model):
+    """Stores EventField test input and expected validation exception"""
+
+    event_field = models.ForeignKey(EventField, on_delete=models.CASCADE)
+    input_data = models.CharField(max_length=200)
+    input_nature = models.CharField(max_length=10, choices=XAPIField.XAPINature.choices)
+    validation_exception = models.CharField(max_length=200, null=True, blank=True)

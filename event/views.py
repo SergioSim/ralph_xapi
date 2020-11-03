@@ -1,18 +1,36 @@
 """Event views"""
+import subprocess
+import json
+import urllib
+
+from django.http import HttpResponse, JsonResponse, HttpResponseBadRequest
+from django.template import loader
+from django.shortcuts import get_object_or_404
 from django.views import generic
 from rest_framework import generics
 
 from .models import (
-    Event, EventField, IPv4Nature, UrlNature, IntegerNature, ListNature, DictNature, NestedNature
+    Event, EventField, IPv4Nature, UrlNature, IntegerNature, ListNature, DictNature, NestedNature,
+    EventFieldTest, XAPIField
 )
 from .serializers import (
     EventFieldSerializer, EventSerializer, IPv4NatureSerializer,
     UrlNatureSerializer, IntegerNatureSerializer, ListNatureSerializer,
-    DictNatureSerializer, NestedNatureSerializer
+    DictNatureSerializer, NestedNatureSerializer, EventFieldTestSerializer
 )
 
-# pylint: disable=no-member,too-many-ancestors
+# import the logging library
+import logging
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
+
+
+# pylint: disable=no-member,too-many-ancestors
+PYTHON_BUDDY_PORT = "3000"
+HOST_IP = subprocess.Popen(["ip", "route"], stdout=subprocess.PIPE, text=True).communicate()[0]
+PYTHON_BUDDY_ROUTE = f"http://{HOST_IP.split()[2]}:{PYTHON_BUDDY_PORT}/compile"
+PYTHON_BUDDY_KEY = "sdkljf56789#KT34_"
 
 class EventListCreate(generics.ListCreateAPIView):
     """List and create events"""
@@ -123,6 +141,62 @@ class NestedNatureDetail(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = NestedNature.objects.all()
     serializer_class = NestedNatureSerializer
+
+
+class EventFieldTestListCreate(generics.ListCreateAPIView):
+    """List and create EventFieldTest"""
+
+    queryset = EventFieldTest.objects.select_related().all()
+    serializer_class = EventFieldTestSerializer
+
+
+class EventFieldTestDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get Update and delete EventFieldTest"""
+
+    queryset = EventFieldTest.objects.all()
+    serializer_class = EventFieldTestSerializer
+
+
+def test_field_by_event(request, field_id):
+    """Returns all EventFieldTests for a given event_field id"""
+    queryset = EventFieldTest.objects.filter(event_field_id=field_id)
+    return JsonResponse({"data": EventFieldTestSerializer(queryset, many=True).data})
+
+def prepare_input_data(field_test):
+    """prepares field_test input_data for template rendering"""
+    NATURE = XAPIField.XAPINature
+    json_natures = [NATURE.OBJECT, NATURE.LIST, NATURE.STRING]
+    if field_test.input_nature in json_natures:
+        field_test.input_data = json.dumps(field_test.input_data)
+    if field_test.input_nature == XAPIField.XAPINature.NULL:
+        field_test.input_data = "None"
+
+def code_field(request, pk):
+    """Execute code in PythonBuddySandbox and return the result"""
+    event_field = get_object_or_404(EventField, pk=pk)
+    field_tests = event_field.eventfieldtest_set.all()
+    if not event_field.validate or not field_tests:
+        return HttpResponseBadRequest("EventField has no validation function or tests defined!")
+    template = loader.get_template('event/code_field_test.txt')
+    for test_field in field_tests:
+        prepare_input_data(test_field)
+    context = {
+        "field": event_field,
+        "field_tests": field_tests,
+    }
+    logger.info(template.render(context, request))
+    if request.method == "GET":
+        return HttpResponse("<pre>" + template.render(context, request) + "</pre>")
+    json_data = {"code": template.render(context, request), "typeRequest": "run"}
+    data = bytes(json.dumps(json_data).encode("utf-8"))
+    headers = {"Content-Type": "application/json", "X-API-Key": PYTHON_BUDDY_KEY}
+    req = urllib.request.Request(PYTHON_BUDDY_ROUTE, data=data, headers=headers)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            response_data = resp.read().decode("utf-8")
+    except urllib.error.URLError as ex:
+        response_data = ex.reason
+    return JsonResponse(json.loads(response_data))
 
 
 class IndexView(generic.ListView):
