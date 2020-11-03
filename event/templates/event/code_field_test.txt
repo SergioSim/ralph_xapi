@@ -6,7 +6,7 @@ def validate_{{ field.name }}({{ field.name }}):
 
 def test(id, data):
     try:
-    	return {"id": id, "output": validate_test(data), "error": False}
+    	return {"id": id, "output": validate_{{ field.name }}(data), "error": False}
     except ValidationError as err:
         return {"id": id, "output": err.messages, "error": True}
 

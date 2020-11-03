@@ -87,8 +87,15 @@ class validateEventField extends Component {
     this.setState({updateTest: {...test}});
   }
 
-  deleteEventFieldTest() {
-
+  deleteEventFieldTest(test) {
+    if(!confirm(`Are you sure to want to delete EventFieldTest with input_data="${test.input_data}" ?`)){
+      return;
+    };
+    this.api.deleteEventFieldTest(test.id).then(response => {
+      if (!response) return;
+      this.setState((state, props) => ({tests: state.tests.filter((item) => item.id != test.id)}));
+      alertService.success(`EventFieldTest with input_data="${test.input_data}" deleted with success!`);
+    });
   }
 
   saveEventFieldTest() {
