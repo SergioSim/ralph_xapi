@@ -180,11 +180,13 @@ def code_field(request, pk):
     template = loader.get_template('event/code_field_test.txt')
     for test_field in field_tests:
         prepare_input_data(test_field)
+    event_field.validate = "    " + event_field.validate.replace("\n", "\n    ")
+    event_field.name = "".join([e for e in event_field.name if e.isalnum()])
     context = {
         "field": event_field,
         "field_tests": field_tests,
     }
-    logger.info(template.render(context, request))
+    logger.error(template.render(context, request))
     if request.method == "GET":
         return HttpResponse("<pre>" + template.render(context, request) + "</pre>")
     json_data = {"code": template.render(context, request), "typeRequest": "run"}

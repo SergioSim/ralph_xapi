@@ -1,8 +1,9 @@
 """Generated tests for EventField {{field.name}}"""
+import json
 from marshmallow import ValidationError
 
 def validate_{{ field.name }}({{ field.name }}):
-    {{ field.validate | safe }}
+{{ field.validate | safe }}
 
 def test(id, data):
     try:
@@ -14,4 +15,4 @@ output = []
 {% for field_test in field_tests %}
 output.append(test({{ field_test.id }}, {{ field_test.input_data | safe }})){% endfor %}
 
-print(output)
+print(json.dumps(output))

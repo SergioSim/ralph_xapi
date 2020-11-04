@@ -5,22 +5,26 @@ import { xAPINature, xAPINatures } from '../../common';
 import $ from 'jquery'
 
 
-class validateEventField extends Component {
+class ValidateEventField extends Component {
 	constructor(props){
     super(props);
     this.api = new Api();
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.state = {
       validate: "",
-      tests: [],
+      tests: new Map(),
       updateTest: null,
       stderr: "",
+      testColors: new Map(),
+      testMessages: new Map(),
     }
+    this.userClearedValidate = false;
   }
 
   componentDidMount(){
     $('#validateEventModal').modal({show: this.props.hidden});
     this.keydownListener = window.addEventListener('keydown', this.handleKeyDown);
+    this.userClearedValidate = false;
   }
 
   componentWillUnmount(){
@@ -29,7 +33,7 @@ class validateEventField extends Component {
 
   componentDidUpdate(){
     $('#validateEventModal').modal({show: this.props.hidden})
-    if (this.props.field && this.props.field.validate != "" && this.state.validate == "") {
+    if (this.props.field && this.props.field.validate != "" && this.state.validate == "" && !this.userClearedValidate) {
       this.fetchEventFieldTest()
     }
   }
@@ -39,7 +43,7 @@ class validateEventField extends Component {
       if (!tests) return;
       this.setState({
         validate: this.props.field.validate,
-        tests: tests.data
+        tests: new Map(tests.data.map(x => [x.id, x]))
       });
       alertService.success('Test and validation function fetched!');
     });
@@ -57,6 +61,11 @@ class validateEventField extends Component {
   }
 
   handleValidateChange(event) {
+    if (event.target.value == "") {
+      this.userClearedValidate = true;
+    } else {
+      this.userClearedValidate = false;
+    }
     this.setState({validate: event.target.value});
   }
 
@@ -80,7 +89,7 @@ class validateEventField extends Component {
   }
 
   toggleUpdateEventFieldTest(test) {
-    if (this.state.updateTest && !this.state.updateTest.id){
+    if (this.hasAddedTest()){
       return;
     }
     // copy dict = {...dict}
@@ -93,7 +102,10 @@ class validateEventField extends Component {
     };
     this.api.deleteEventFieldTest(test.id).then(response => {
       if (!response) return;
-      this.setState((state, props) => ({tests: state.tests.filter((item) => item.id != test.id)}));
+      this.setState((state, props) => {
+        state.tests.delete(test.id);
+        return {};
+      });
       alertService.success(`EventFieldTest with input_data="${test.input_data}" deleted with success!`);
     });
   }
@@ -101,28 +113,40 @@ class validateEventField extends Component {
   saveEventFieldTest() {
     const updateTest = this.state.updateTest;
     if (updateTest.id){
-      this.api.updateEventFieldTest(updateTest.id, updateTest).then(test => {
-        if (!test) return;
-        this.setState((state, props) => ({
-          tests: state.tests.map(x => x.id == test.id ? test : x),
-          updateTest: null
-        }));
-        alertService.success(`EventFieldTest with input_data="${updateTest.input_data}" updated with success!`);
-      });
+      this.updateEventFieldTest(updateTest);
       return;
     }
+    this.createEventFieldTest(updateTest)
+  }
+
+  createEventFieldTest(updateTest) {
     this.api.createEventFieldTest(updateTest).then(test => {
       if (!test) return;
-      this.setState((state, props) => ({
-        tests: state.tests.map(x => x.id ? x : test),
-        updateTest: null
-      }));
+      this.setState((state, props) => {
+        state.tests.delete("updateTest");
+        return {
+          tests: state.tests.set(test.id, test),
+          updateTest: null
+        }
+      });
       alertService.success(`EventFieldTest with input_data="${updateTest.input_data}" created with success!`);
     })
   }
 
+  updateEventFieldTest(updateTest) {
+    this.api.updateEventFieldTest(updateTest.id, updateTest).then(test => {
+      if (!test) return;
+      this.setState((state, props) => ({
+        tests: state.tests.set(test.id, test),
+        updateTest: null
+      }));
+      alertService.success(`EventFieldTest with input_data="${updateTest.input_data}" updated with success!`);
+    });
+    return;
+  }
+
   addEventFieldTest() {
-    if (this.state.updateTest && !this.state.updateTest.id){
+    if (this.hasAddedTest()){
       return;
     }
     const updateTest = {
@@ -131,31 +155,135 @@ class validateEventField extends Component {
       input_nature: xAPINatures.STRING,
       validation_exception: "",
     }
-    this.setState((state, props) => ({updateTest, tests: [updateTest, ...state.tests]}));
+    this.setState((state, props) => ({updateTest, tests: state.tests.set("updateTest", updateTest)}));
   }
 
   resetEventFieldTest() {
-    const newState = {updateTest: null}
-    if (!this.state.updateTest.id){
-      newState["tests"] =  this.state.tests.filter((item) => item.id);
-    }
-    this.setState(newState);
+    this.setState((state, props) => {
+      state.tests.delete("updateTest");
+      return {updateTest: null}
+    });
   }
 
   saveAndRunTests() {
     this.updateEventField().then(() => {
       this.api.validateEventField(this.props.field.id).then(res => {
         if (!res) return;
-        console.log("the res", res);
-        this.setState({stderr: res.stderr});
-        alertService.success("Test Executed!");
+        if (res.isError) {
+          alertService.error("Error! Test NOT Executed!");
+        }
+        let stdout = [];
+        try {
+          stdout = JSON.parse(res.stdout.substring(0, res.stdout.length -1));
+        } catch (error) {
+          console.log(error);
+          alertService.error("Unable to parse STDOUT! Did you use print? Print is not allowed!");
+        }
+        const colorsAndMessages = this.getTestColorsAndMessages(stdout);
+        this.setState({stderr: res.stderr, testColors: colorsAndMessages[0], testMessages: colorsAndMessages[1]});
       });
     });
   }
 
+  getTestColorsAndMessages(stdout) {
+    const colors = new Map();
+    const messages = new Map();
+    stdout.forEach(obj => {
+      const testCase = this.state.tests.get(obj.id);
+      const currentOutput = obj.output ? obj.output : "";
+      if (testCase.validation_exception == currentOutput){
+        colors.set(obj.id, "#95d695");
+        return;
+      }
+      colors.set(obj.id, "#f66");
+      messages.set(obj.id, `Got "${currentOutput}" instead!`);
+    });
+    return [colors, messages];
+  }
+
+  hasAddedTest() {
+    return this.state.tests.has("updateTest");
+  }
+
+  appendRenderedTest(test, tests) {
+    if (this.state.updateTest && this.state.updateTest.id == test.id){
+      tests.push(this.getRenderedUpdateTest());
+      return;
+    }
+    tests.push(this.getRenderedTest(test))
+  }
+
+  getRenderedUpdateTest() {
+    return (
+      <tr key="0">
+        <td>{this.state.updateTest.id}</td>
+        <th scope="row">
+          <input type="text" name="input_data" id="input_data" className="form-control"
+              value={this.state.updateTest.input_data}
+              onChange={(event) => this.handleUpdateTestChange(event, "input_data")} required
+          />
+        </th>
+        <td>
+          <select name="input_nature" className="custom-select" value={this.state.updateTest.input_nature}
+                  onChange={(event) => this.handleUpdateTestChange(event, "input_nature")} required>
+            {(() => {
+              const natures = [];
+              Object.values(xAPINatures).forEach(val => natures.push(
+                <option value={val} key={"nature" + val}>{val}</option>
+              ));
+              return natures;
+            })()}
+          </select>
+        </td>
+        <td>
+          <input type="text" name="validation_exception" id="validation_exception" className="form-control"
+              value={this.state.updateTest.validation_exception}
+              onChange={(event) => this.handleUpdateTestChange(event, "validation_exception")}
+          />
+        </td>
+        <td>
+          <button type="button" className="btn btn-success btn-sm m-2"
+                  onClick={() => this.saveEventFieldTest()}>
+            Save
+          </button>
+          <button type="button" className="btn btn-warning btn-sm m-2"
+                  onClick={() => this.resetEventFieldTest()}>
+            Reset
+          </button>
+        </td>
+      </tr>
+    )
+  }
+
+  getRenderedTest(test) {
+    const errorMessage = this.state.testMessages.get(test.id);
+    return(
+      <tr key={test.id}>
+        <td>{test.id}</td>
+        <th scope="row">
+          {test.input_data}
+        </th>
+        <td>{test.input_nature}</td>
+        <td style={{backgroundColor: this.state.testColors.get(test.id)}}>
+          {test.validation_exception}
+          {errorMessage && <strong><br/>{errorMessage}</strong>}
+        </td>
+        <td>
+          <button type="button" className="btn btn-primary btn-sm m-2"
+                  onClick={() => this.toggleUpdateEventFieldTest(test)} disabled={this.hasAddedTest()}>
+            Update
+          </button>
+          <button type="button" className="btn btn-danger btn-sm m-2"
+                  onClick={() => this.deleteEventFieldTest(test)}>
+            Delete
+          </button>
+        </td>
+      </tr>
+    )
+  }
+
   render() {
     if (!this.props.field) return null;
-    let isDisabled = this.state.updateTest && !this.state.updateTest.id;
     return (
       <div className="modal fade"
           id="validateEventModal"
@@ -193,12 +321,13 @@ class validateEventField extends Component {
               </form>
               <label className="m-0">Tests</label>
               <button type="button" className="btn btn-success btn-sm m-2"
-                      onClick={() => this.addEventFieldTest()} disabled={isDisabled}>
+                      onClick={() => this.addEventFieldTest()} disabled={this.hasAddedTest()}>
                 Add
               </button><br/>
               <table className="table">
                 <thead>
                   <tr>
+                    <th scope="col">Id</th>
                     <th scope="col">Input</th>
                     <th scope="col">Type</th>
                     <th scope="col">Exception</th>
@@ -206,65 +335,11 @@ class validateEventField extends Component {
                   </tr>
                 </thead>
                 <tbody>
-                  {this.state.tests.map(test => {
-                    if (this.state.updateTest && this.state.updateTest.id == test.id) {
-                      return (
-                        <tr key="0">
-                        <th scope="row">
-                          <input type="text" name="input_data" id="input_data" className="form-control"
-                              value={this.state.updateTest.input_data}
-                              onChange={(event) => this.handleUpdateTestChange(event, "input_data")} required
-                          />
-                        </th>
-                        <td>
-                          <select name="input_nature" className="custom-select" value={this.state.updateTest.input_nature}
-                                  onChange={(event) => this.handleUpdateTestChange(event, "input_nature")} required>
-                            {(() => {
-                              const natures = [];
-                              Object.values(xAPINatures).forEach(val => natures.push(
-                                <option value={val} key={"nature" + val}>{val}</option>
-                              ));
-                              return natures;
-                            })()}
-                          </select>
-                        </td>
-                        <td>
-                          <input type="text" name="validation_exception" id="validation_exception" className="form-control"
-                              value={this.state.updateTest.validation_exception}
-                              onChange={(event) => this.handleUpdateTestChange(event, "validation_exception")}
-                          />
-                        </td>
-                        <td>
-                          <button type="button" className="btn btn-success btn-sm m-2"
-                                  onClick={() => this.saveEventFieldTest()}>
-                            Save
-                          </button>
-                          <button type="button" className="btn btn-warning btn-sm m-2"
-                                  onClick={() => this.resetEventFieldTest()}>
-                            Reset
-                          </button>
-                        </td>
-                      </tr>
-                      )
-                    }
-                    return (
-                      <tr key={test.id}>
-                        <th scope="row">{test.input_data}</th>
-                        <td>{test.input_nature}</td>
-                        <td>{test.validation_exception}</td>
-                        <td>
-                          <button type="button" className="btn btn-primary btn-sm m-2"
-                                  onClick={() => this.toggleUpdateEventFieldTest(test)} disabled={isDisabled}>
-                            Update
-                          </button>
-                          <button type="button" className="btn btn-danger btn-sm m-2"
-                                  onClick={() => this.deleteEventFieldTest(test)}>
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {(() => {
+                    const tests = [];
+                    this.state.tests.forEach(test => this.appendRenderedTest(test, tests));
+                    return tests
+                  })()}
                 </tbody>
               </table>
               <div>
@@ -295,4 +370,4 @@ class validateEventField extends Component {
   }
 }
 
-export default validateEventField;
+export default ValidateEventField;
