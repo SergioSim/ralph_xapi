@@ -165,8 +165,7 @@ def test_field_by_event(request, field_id):
 def prepare_input_data(field_test):
     """prepares field_test input_data for template rendering"""
     NATURE = XAPIField.XAPINature
-    json_natures = [NATURE.OBJECT, NATURE.LIST, NATURE.STRING]
-    if field_test.input_nature in json_natures:
+    if field_test.input_nature == NATURE.STRING:
         field_test.input_data = json.dumps(field_test.input_data)
     if field_test.input_nature == XAPIField.XAPINature.NULL:
         field_test.input_data = "None"
