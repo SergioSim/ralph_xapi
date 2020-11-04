@@ -69,15 +69,23 @@ class App extends Component {
 
   fetchEventFields(iEvents){
     this.api.fetchEventFields().then(fields => {
-      fields = fields.reduce(
-        (acc, x) => acc.set(x.event, (acc.get(x.event) || new Map()).set(x.id, x)),
-        new Map());
-      const events = new Map(iEvents.map(x => {
-        x.fields = fields.get(x.id) || new Map();
-        return [x.id, x];
-      }));
-      this.setState({events})
-    });        
+      fields = this.groupFieldsByEvent(fields);
+      this.api.fetchXAPIFields().then(xapiFields => {
+        xapiFields = this.groupFieldsByEvent(xapiFields);
+        const events = new Map(iEvents.map(x => {
+          x.fields = fields.get(x.id) || new Map();
+          x.xapiFields = xapiFields.get(x.id) || new Map();
+          return [x.id, x];
+        }));
+        this.setState({events})
+      })
+    });
+  }
+
+  groupFieldsByEvent(fields){
+    return fields.reduce(
+      (acc, x) => acc.set(x.event, (acc.get(x.event) || new Map()).set(x.id, x)),
+      new Map());
   }
 
   handleSidebarClick(event){

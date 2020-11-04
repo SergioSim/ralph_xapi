@@ -17,10 +17,13 @@ class EventGraph extends Component {
       },
       tooltipField: null,
       showExcluded: true,
+      eventYSlider: 40,
+      eventXSlider: 500,
     }
     this.graphRef = React.createRef();
     this.tooltipChange = false;
     this.clickedOnNode = false;
+    this.width = 954;
   }
 
   componentDidMount() {
@@ -34,7 +37,11 @@ class EventGraph extends Component {
     this.tooltipChange = false;
   }
 
-  prepareGraphData(event, arr) {
+  handleChange(event) {
+    this.setState({[event.target.name]: event.target.value})
+  }
+
+  prepareEventGraphData(event, arr) {
     event.fields.forEach(field => {
       if(!this.state.showExcluded && field.excluded){
         return;
@@ -44,8 +51,7 @@ class EventGraph extends Component {
         const nature = this.props.natures.get(eventNature.NESTED).get(field.nature_id);
         if(!nature) return;
         const nested = this.props.events.get(nature.event);
-        console.log(nested, "nested1");
-        this.prepareGraphData(nested, children);
+        this.prepareEventGraphData(nested, children);
       }
       arr.push({name: field.name, value: field, children});
     });
@@ -56,31 +62,39 @@ class EventGraph extends Component {
     });
     return arr;
   }
+  
+  prepareXapiGraphData(event, arr) {
+    return;
+  }
+
+  getXapiRoot() {
+    const value = this.props.event;
+    const name = `XAPI(${value.name})`;
+    const children = this.prepareXapiGraphData(value, []);
+    return;
+  }
+
+  getEventRoot(){
+    const value = this.props.event;
+    const name = value.name;
+    const children = this.prepareEventGraphData(value, []);
+    const root = d3.hierarchy({name, children, value});
+    root.dx = this.state.eventYSlider;
+    root.dy = this.state.eventXSlider;
+    return d3.tree().nodeSize([root.dx, root.dy])(root);
+  }
 
   updateGraph() {
-    const width = 954;
-    const name = this.props.event.name;
-    // const children = [];
-    // this.props.event.fields.forEach(field => {
-    //   if(!this.state.showExcluded && field.excluded){
-    //     return;
-    //   }
-    //   children.push({name: field.name, value: field, children: []});
-    // })
-    // children.sort((a, b) => {
-    //   var textA = a.name.toUpperCase();
-    //   var textB = b.name.toUpperCase();
-    //   return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
-    // });
-    const children = this.prepareGraphData(this.props.event, []);
-    const root = this.tree({name, children, value: this.props.event}, width);
+    const eventRoot = this.getEventRoot();
+    console.log(eventRoot);
+    const xapiRoot = this.getXapiRoot();
     d3.selectAll(this.graphRef.current.children).remove();
-    const svg = d3.select(this.graphRef.current).attr("viewBox", [-150, 0, width, root.dx * 2]);
-    this.populateSvg(svg, root);
+    const svg = d3.select(this.graphRef.current).attr("viewBox", [-150, 0, this.width, eventRoot.dx * 2]);
+    this.populateSvg(svg, eventRoot, xapiRoot);
     feather.replace();
   }
 
-  populateSvg(svg, root) {
+  populateSvg(svg, eventRoot, xapiRoot) {
     svg.on("click", () => this.removeTooltip());
     const g = svg.append("g");
     
@@ -107,7 +121,7 @@ class EventGraph extends Component {
       .attr("stroke", "#ccc")
       .attr("stroke-width", "2px")
       .selectAll("path")
-        .data(root.links())
+        .data(eventRoot.links())
         .join("path")
           .attr("d", d3.linkHorizontal()
               .x(d => d.y)
@@ -117,7 +131,7 @@ class EventGraph extends Component {
         .attr("stroke-linejoin", "round")
         .attr("stroke-width", 3)
         .selectAll("g")
-        .data(root.descendants())
+        .data(eventRoot.descendants())
         .join("g")
           .attr("class", "node")
           .attr("transform", d => `translate(${d.y},${d.x})`)
@@ -156,13 +170,6 @@ class EventGraph extends Component {
       return node.nature;
     }
     return "Event";
-  }
-
-  tree(data, width) {
-    const root = d3.hierarchy(data);
-    root.dx = 40;
-    root.dy = 500;
-    return d3.tree().nodeSize([root.dx, root.dy])(root);
   }
 
   clickNode(event, treeNode){
@@ -224,6 +231,10 @@ class EventGraph extends Component {
         showExcluded={this.state.showExcluded}
         toggleShowExcluded={(showExcluded) => this.toggleShowExcluded(showExcluded)}
         />
+        <label htmlFor="eventXSlider" className="m-3">X</label>
+        <input type="range" name="eventXSlider" id="eventXSlider" min="40" max="1000" value={this.state.eventXSlider} onChange={(e) => this.handleChange(e)}/>
+        <label htmlFor="eventYSlider" className="m-3">Y</label>
+        <input type="range" name="eventYSlider" id="eventYSlider" min="20" max="200" value={this.state.eventYSlider} onChange={(e) => this.handleChange(e)}/>
         <svg id="event-graph" ref={this.graphRef}></svg>
       </div>
     );

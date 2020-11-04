@@ -80,9 +80,28 @@ class IPv4NatureSerializer(serializers.ModelSerializer):
         model = models.IPv4Nature
         fields = ("id", "exploded")
 
+
 class EventFieldTestSerializer(serializers.ModelSerializer):
     """EventFieldTest django model serializer"""
 
     class Meta:
         model = models.EventFieldTest
         fields = ("id", "event_field", "input_data", "input_nature", "validation_exception")
+
+
+class XAPIFieldSerializer(serializers.ModelSerializer):
+    """XAPIField django model serializer"""
+
+    class Meta:
+        model = models.XAPIField
+        fields = (
+            "id",
+            "event",
+            "parent",
+            "name",
+            "description",
+            "nature",
+            "event_fields",
+            "transform",
+            "default",
+        )

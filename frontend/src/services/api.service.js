@@ -46,6 +46,10 @@ export default class Api {
     return this.apiFetch('api/event/field/');
   }
 
+  fetchXAPIFields() {
+    return this.apiFetch('api/event/xapi/');
+  }
+
   fetchIpv4Nature() {
     return this.apiFetch('api/event/nature/ipv4/');
   }
@@ -80,6 +84,10 @@ export default class Api {
 
   createEventField(body, expectedStatus = 201) {
     return this.apiFetch('api/event/field/', "POST", body, expectedStatus);
+  }
+
+  createXAPIField(body, expectedStatus = 201) {
+    return this.apiFetch('api/event/xapi/', "POST", body, expectedStatus);
   }
 
   createIpv4Nature(body, expectedStatus = 201) {
@@ -118,6 +126,10 @@ export default class Api {
     return this.apiFetch('api/event/field/' + id, "PATCH", body, expectedStatus);
   }
 
+  updateXAPIField(id, body, expectedStatus = 200) {
+    return this.apiFetch('api/event/xapi/' + id, "PATCH", body, expectedStatus);
+  }
+
   updateEventFieldTest(id, body, expectedStatus = 200) {
     return this.apiFetch('api/event/test/field/' + id, "PUT", body, expectedStatus);
   }
@@ -128,6 +140,10 @@ export default class Api {
 
   deleteEventField(id, expectedStatus = 204) {
     return this.apiFetch('api/event/field/' + id, "DELETE", null, expectedStatus, false);
+  }
+
+  deleteXAPIField(id, expectedStatus = 204) {
+    return this.apiFetch('api/event/xapi/' + id, "DELETE", null, expectedStatus, false);
   }
 
   deleteEventFieldTest(id, expectedStatus = 204) {

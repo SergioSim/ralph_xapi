@@ -16,7 +16,8 @@ from .models import (
 from .serializers import (
     EventFieldSerializer, EventSerializer, IPv4NatureSerializer,
     UrlNatureSerializer, IntegerNatureSerializer, ListNatureSerializer,
-    DictNatureSerializer, NestedNatureSerializer, EventFieldTestSerializer
+    DictNatureSerializer, NestedNatureSerializer, EventFieldTestSerializer,
+    XAPIFieldSerializer
 )
 
 # import the logging library
@@ -141,6 +142,20 @@ class NestedNatureDetail(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = NestedNature.objects.all()
     serializer_class = NestedNatureSerializer
+
+
+class XAPIFieldListCreate(generics.ListCreateAPIView):
+    """List and create XAPI fields"""
+
+    queryset = XAPIField.objects.select_related().all()
+    serializer_class = XAPIFieldSerializer
+
+
+class XAPIFieldDetail(generics.RetrieveUpdateDestroyAPIView):
+    """Get Update and delete XAPI fields"""
+
+    queryset = XAPIField.objects.all()
+    serializer_class = XAPIFieldSerializer
 
 
 class EventFieldTestListCreate(generics.ListCreateAPIView):
