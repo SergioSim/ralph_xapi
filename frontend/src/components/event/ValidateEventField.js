@@ -1,7 +1,10 @@
 import React, { Component } from "react";
+import AceEditor from "react-ace";
 import Api from '../../services/api.service';
+import "ace-builds/src-noconflict/mode-python";
+import "ace-builds/src-noconflict/theme-github";
 import { alertService } from '../../services/alert.service';
-import { xAPINature, xAPINatures } from '../../common'; 
+import { xAPINatures } from '../../common'; 
 import $ from 'jquery'
 
 
@@ -60,13 +63,13 @@ class ValidateEventField extends Component {
     this.props.toggleShowValidateField();
   }
 
-  handleValidateChange(event) {
-    if (event.target.value == "") {
+  handleValidateChange(validate) {
+    if (validate == "") {
       this.userClearedValidate = true;
     } else {
       this.userClearedValidate = false;
     }
-    this.setState({validate: event.target.value});
+    this.setState({validate});
   }
 
   handleUpdateTestChange(event, name) {
@@ -310,12 +313,17 @@ class ValidateEventField extends Component {
                   <label htmlFor="validate" className="m-0">Validation function:</label><br/>
                   <small className="text-muted mb-1">
                     P.S. the event field is accessible by it's name:
-                    <strong>{this.props.field.name}</strong>
+                    <strong>{this.props.field.name.replace(/\W/g, '')}</strong>
                   </small>
-                  <textarea
-                    className="form-control" rows="10" cols="110" id="validate" name="validate"
+                  <AceEditor
+                    mode="python"
+                    theme="github"
                     value={this.state.validate}
                     onChange={(e) => this.handleValidateChange(e)}
+                    name="ace_validate"
+                    fontSize={18}
+                    width="100%"
+                    editorProps={{}}
                   />
                 </div>
               </form>
