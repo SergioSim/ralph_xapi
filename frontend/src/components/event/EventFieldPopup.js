@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import feather from 'feather-icons/dist/feather';
-import { eventNature, booleanNatures} from '../../common';
+import { eventNature} from '../../common';
 
 class EventFieldPopup extends Component {
   constructor(props) {
@@ -107,7 +107,7 @@ class EventFieldPopup extends Component {
     }
     let properties = this.getProperties();
     return (
-      <div className="popover bs-popover-right" role="tooltip" style={this.props.style}>
+      <div className="popover bs-popover-right" role="tooltip" style={this.props.style} hidden={this.props.eventTooltipHidden}>
           <div className="arrow" style={{top: "34px"}}></div>
             <h3 className="popover-header">{field.name}</h3>
           <div className="popover-body">
