@@ -108,9 +108,13 @@ class Event extends Component {
     });
   }
 
-  updateField(field){
+  updateField(field, isXapi){
     const event = this.props.event;
-    event.fields.set(field.id, field);
+    if(isXapi){
+      event.xapiFields.set(field.id, field);
+    } else {
+      event.fields.set(field.id, field);
+    }
     this.setState({validateField: field});
     this.updateEvent(event);
   }
@@ -196,7 +200,7 @@ class Event extends Component {
           events={this.props.events}
           natures={this.props.natures}
           toggleShowAddField={(event) => this.toggleShowAddField(event, false)}
-          updateField={(field) => this.updateField(field)}
+          updateField={(field) => this.updateField(field, false)}
           updateNature={(name, nature) => this.props.updateNature(name, nature)}
         />
         <CreateXapiField
@@ -205,7 +209,7 @@ class Event extends Component {
           events={this.props.events}
           natures={this.props.natures}
           toggleShowAddField={(event) => this.toggleShowAddField(event, true)}
-          updateField={(field) => this.updateField(field)}
+          updateField={(field) => this.updateField(field, true)}
           updateNature={(name, nature) => this.props.updateNature(name, nature)}
         />
         <ValidateEventField
@@ -213,7 +217,7 @@ class Event extends Component {
           event={this.props.event}
           field={this.state.validateField}
           toggleShowValidateField={(event) => this.toggleShowValidateField(event)}
-          updateField={(field) => this.updateField(field)}
+          updateField={(field) => this.updateField(field, false)}
         />
         <EventGraph
           event={this.props.event}

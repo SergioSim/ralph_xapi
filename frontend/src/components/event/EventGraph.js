@@ -2,7 +2,6 @@ import './EventGraph.css';
 import React, { Component } from "react";
 import * as d3 from "d3";
 import feather from 'feather-icons/dist/feather';
-import { data } from 'jquery';
 import EventFieldPopup from './EventFieldPopup';
 import XapiFieldPopup from './XapiFieldPopup';
 import { eventNature } from '../../common';
@@ -27,6 +26,8 @@ class EventGraph extends Component {
     this.tooltipChange = false;
     this.clickedOnNode = false;
     this.width = 954;
+    this.keepZoom = false;
+    this.previousZoom = { k: 1, x: 0, y: 0 }
   }
 
   componentDidMount() {
@@ -41,7 +42,14 @@ class EventGraph extends Component {
   }
 
   handleChange(event) {
+    this.keepZoom = true;
     this.setState({[event.target.name]: event.target.value})
+  }
+
+  sortFieldsByName(a, b){
+    const textA = a.name.toUpperCase();
+    const textB = b.name.toUpperCase();
+    return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
   }
 
   prepareEventGraphData(event, arr) {
@@ -58,15 +66,17 @@ class EventGraph extends Component {
       }
       arr.push({name: field.name, value: field, children});
     });
-    arr.sort((a, b) => {
-      var textA = a.name.toUpperCase();
-      var textB = b.name.toUpperCase();
-      return (textA < textB) ? -1 : (textA > textB) ? 1 : 0;
-    });
+    arr.sort(this.sortFieldsByName);
     return arr;
   }
   
   prepareXapiGraphData(event, arr) {
+    // TODO: handle xapi fields having parent xapi fields
+    event.xapiFields.forEach(field => {
+      const children = [];
+      arr.push({name: field.name, value: field, children});
+    })
+    arr.sort(this.sortFieldsByName);
     return arr;
   }
 
@@ -82,8 +92,8 @@ class EventGraph extends Component {
   getXapiRoot(height) {
     const value = this.props.event;
     const name = `XAPI(${value.name})`;
-    // const children = this.prepareXapiGraphData(value, []);
-    const children = this.prepareEventGraphData(value, []);
+    const children = this.prepareXapiGraphData(value, []);
+    // const children = this.prepareEventGraphData(value, []);
     const root = d3.hierarchy({name, children, value});
     root.dx = this.state.eventYSlider;
     root.dy = this.state.eventXSlider;
@@ -114,11 +124,17 @@ class EventGraph extends Component {
   }
 
   drawToolTip(svg, g){
+    if (this.keepZoom) {
+      g.attr("transform", this.previousZoom);
+      this.keepZoom = false;
+    } else {
+      svg.call(d3.zoom().transform, d3.zoomIdentity);
+    }
     this.tooltipTransformX = 0;
     this.tooltipTransformY = 0;
-    svg.call(d3.zoom().transform, d3.zoomIdentity);
     svg.call(d3.zoom().on("zoom", (event) => {
       const pos = event.transform;
+      this.previousZoom = pos;
       const tootip = this.state.tooltipStyle;
       g.attr("transform", pos);
       this.tooltipChange = true;
