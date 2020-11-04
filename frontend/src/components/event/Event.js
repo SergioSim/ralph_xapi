@@ -4,6 +4,7 @@ import { alertService } from '../../services/alert.service';
 import Api from '../../services/api.service'
 import EventGraph from './EventGraph';
 import CreateEventField from "./CreateEventField";
+import CreateXapiField from "./CreateXapiField";
 import ValidateEventField from "./ValidateEventField";
 
 class Event extends Component {
@@ -14,6 +15,7 @@ class Event extends Component {
       edit: false,
       event: this.props.event,
       showAddField: false,
+      showAddXapiField: false,
       showValidateField: false,
       validateField: null
     }
@@ -84,7 +86,11 @@ class Event extends Component {
     })
   }
 
-  toggleShowAddField(event = null){
+  toggleShowAddField(event = null, isXapi = false){
+    if (isXapi) {
+      this.setState((state, props) => ({showAddXapiField: !state.showAddXapiField}));
+      return;
+    }
     this.setState((state, props) => ({showAddField: !state.showAddField}));
   }
 
@@ -189,7 +195,16 @@ class Event extends Component {
           event={this.props.event}
           events={this.props.events}
           natures={this.props.natures}
-          toggleShowAddField={(event) => this.toggleShowAddField(event)}
+          toggleShowAddField={(event) => this.toggleShowAddField(event, false)}
+          updateField={(field) => this.updateField(field)}
+          updateNature={(name, nature) => this.props.updateNature(name, nature)}
+        />
+        <CreateXapiField
+          hidden={this.state.showAddXapiField}
+          event={this.props.event}
+          events={this.props.events}
+          natures={this.props.natures}
+          toggleShowAddField={(event) => this.toggleShowAddField(event, true)}
           updateField={(field) => this.updateField(field)}
           updateNature={(name, nature) => this.props.updateNature(name, nature)}
         />
@@ -204,7 +219,7 @@ class Event extends Component {
           event={this.props.event}
           events={this.props.events}
           natures={this.props.natures}
-          toggleShowAddField={(event) => this.toggleShowAddField(event)}
+          toggleShowAddField={(event, isXapi) => this.toggleShowAddField(event, isXapi)}
           toggleShowValidateField={(field) => this.toggleShowValidateField(field)}
           deleteEventField={(field, callback) => this.deleteEventField(field, callback)}
         />

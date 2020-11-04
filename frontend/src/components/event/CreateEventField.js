@@ -298,6 +298,7 @@ class CreateEventField extends Component {
                   </div>
                   <NatureSelect
                     nature={this.state.nature}
+                    natures={eventNature}
                     handleFieldChange={(e, name) => this.handleFieldChange(e, name)}
                   />
                 </div>

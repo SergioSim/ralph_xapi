@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import { eventNature } from '../../common'
 
 
 class NatureSelect extends Component {
@@ -15,7 +14,7 @@ class NatureSelect extends Component {
                 onChange={(e) => this.props.handleFieldChange(e, "nature")} required>
           {(() => {
             const natures = [];
-            Object.values(eventNature).forEach(val => natures.push(
+            Object.values(this.props.natures).forEach(val => natures.push(
               <option value={val} key={"nature" + val}>{val}</option>
             ));
             return natures;

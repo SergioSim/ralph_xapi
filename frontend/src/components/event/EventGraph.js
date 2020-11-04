@@ -20,7 +20,7 @@ class EventGraph extends Component {
       tooltipField: null,
       showExcluded: true,
       eventYSlider: 80,
-      eventXSlider: 130,
+      eventXSlider: 280,
       eventXapiGapSlider: 350,
     }
     this.graphRef = React.createRef();
@@ -253,9 +253,9 @@ class EventGraph extends Component {
     this.hideTooltips()
   }
 
-  toggleShowAddField(field) {
+  toggleShowAddField(field, isXapi) {
     this.hideTooltips()
-    this.props.toggleShowAddField(field);
+    this.props.toggleShowAddField(field, isXapi);
   }
 
   toggleShowValidateField(field) {
@@ -283,7 +283,7 @@ class EventGraph extends Component {
         field={this.state.tooltipField}
         style={this.state.tooltipStyle}
         eventTooltipHidden={this.state.eventTooltipHidden}
-        toggleShowAddField={(field) => this.toggleShowAddField(field)}
+        toggleShowAddField={(field) => this.toggleShowAddField(field, false)}
         toggleShowValidateField={(field) => this.toggleShowValidateField(field)}
         deleteEventField={(field) => this.deleteEventField(field)}
         showExcluded={this.state.showExcluded}
@@ -294,7 +294,7 @@ class EventGraph extends Component {
         field={this.state.tooltipField}
         style={this.state.tooltipStyle}
         xapiTooltipHidden={this.state.xapiTooltipHidden}
-        toggleShowAddField={(field) => this.toggleShowAddField(field)}
+        toggleShowAddField={(field) => this.toggleShowAddField(field, true)}
         toggleShowValidateField={(field) => this.toggleShowValidateField(field)}
         deleteEventField={(field) => this.deleteEventField(field)}
         />

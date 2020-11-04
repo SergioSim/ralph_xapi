@@ -155,7 +155,7 @@ class XAPIField(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     nature = models.CharField(max_length=10, choices=XAPINature.choices)
-    event_fields = models.ManyToManyField(EventField)
+    event_fields = models.ManyToManyField(EventField, blank=True)
     transform = models.TextField(null=True, blank=True)
     default = models.CharField(max_length=200, null=True, blank=True)
 
