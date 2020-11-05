@@ -2,6 +2,8 @@ import './EventGraph.css';
 import React, { Component } from "react";
 import * as d3 from "d3";
 import feather from 'feather-icons/dist/feather';
+import Api from '../../services/api.service'
+import { alertService } from '../../services/alert.service';
 import EventFieldPopup from './EventFieldPopup';
 import XapiFieldPopup from './XapiFieldPopup';
 import { eventNature } from '../../common';
@@ -9,6 +11,7 @@ import { eventNature } from '../../common';
 class EventGraph extends Component {
   constructor(props) {
     super(props);
+    this.api = new Api();
     this.state = {
       tooltipStyle: {
         top: 0,
@@ -123,6 +126,16 @@ class EventGraph extends Component {
     feather.replace();
   }
 
+  addXapiLink(eventField, xapiField) {
+    console.log("add link", xapiField, eventField, this);
+    const data = {"event_fields": [...xapiField.event_fields, eventField.id]};
+    this.api.updateXAPIField(xapiField.id, data).then(field => {
+      if (!field) return;
+      this.props.updateField(field, true);
+      alertService.success(`Added Field ${eventField.name} with success!`);
+    });
+  }
+
   drawToolTip(svg, g){
     if (this.keepZoom) {
       g.attr("transform", this.previousZoom);
@@ -173,6 +186,60 @@ class EventGraph extends Component {
         .on("click", onclick);
   }
 
+  dragAndDrop(g, node, xapiNode) {
+    const thisEventGraph = this;
+    xapiNode.call(d3.drag().on("start", function(event) {
+      thisEventGraph.selectedField = null;
+      node.append("circle")
+        .attr('class', 'ghostCircle')
+        .attr("r", 30)
+        .attr("opacity", 0.2)
+        .style("fill", "red")
+        .attr("transform", "translate(3,0)")
+        .attr('pointer-events', 'mouseover')
+        .on("mouseover", function(event) {
+          thisEventGraph.selectedField = this.__data__.data.value;
+        })
+        .on("mouseout", function(event) {
+          thisEventGraph.selectedField = null;
+        });
+      }).on("drag", function(event) {
+        const data = [{
+          source: {
+            x: event.subject.x,
+            y: event.subject.y
+          },
+          target: {
+            // WHY D3 ... WHY ?
+            x: event.subject.x + event.y - event.subject.y,
+            y: event.subject.y + event.x - event.subject.x,
+          }
+        }];
+        d3.selectAll(".templink").remove();
+        g.append("g")
+          .attr("fill", "none")
+          .attr("stroke", "#ccc")
+          .attr("stroke-width", "2px")
+          .attr("class", "templink")
+          .selectAll("path")
+            .data(data)
+            .join("path")
+              .attr("d", d3.linkHorizontal()
+                .x(d => d.y)
+                .y(d => d.x));
+      }).on("end", function(event) {
+        d3.selectAll(".templink").remove();
+        d3.selectAll(".ghostCircle").remove();
+        // const x =  event.subject.y + event.x - event.subject.x;
+        // const y =  event.subject.x + event.y - event.subject.y;
+        console.log();
+        if (thisEventGraph.selectedField) {
+          thisEventGraph.addXapiLink(thisEventGraph.selectedField, this.__data__.data.value);
+        }
+      })
+    );
+  }
+
   populateSvg(svg, eventRoot, xapiRoot) {
     svg.on("click", () => this.removeTooltip());
     const g = svg.append("g");
@@ -183,7 +250,7 @@ class EventGraph extends Component {
     
     const node = this.getClickableNode(g, eventRoot, (treeNode, d) => this.clickNode(treeNode, d, "eventTooltipHidden"));
     const xapiNode = this.getClickableNode(g, xapiRoot, (treeNode, d) => this.clickNode(treeNode, d, "xapiTooltipHidden"));
-    
+    this.dragAndDrop(g, node, xapiNode);
     xapiNode.append("span")
       .style("color", "#2196f3")
       .attr("data-feather", "circle")

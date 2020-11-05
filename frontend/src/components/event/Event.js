@@ -226,6 +226,7 @@ class Event extends Component {
           toggleShowAddField={(event, isXapi) => this.toggleShowAddField(event, isXapi)}
           toggleShowValidateField={(field) => this.toggleShowValidateField(field)}
           deleteEventField={(field, callback) => this.deleteEventField(field, callback)}
+          updateField={(field, isXapi) => this.updateField(field, isXapi)}
         />
       </div>
     );
