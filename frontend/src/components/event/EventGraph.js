@@ -7,6 +7,7 @@ import { alertService } from '../../services/alert.service';
 import EventFieldPopup from './EventFieldPopup';
 import XapiFieldPopup from './XapiFieldPopup';
 import { eventNature } from '../../common';
+import { color } from 'd3';
 
 class EventGraph extends Component {
   constructor(props) {
@@ -147,6 +148,7 @@ class EventGraph extends Component {
         links.push({
           source: xapiPositions,
           target: eventPositions,
+          value: {event: eventFieldID, xapi: xapiField.id},
         });
       });
     });
@@ -167,8 +169,24 @@ class EventGraph extends Component {
     const data = {"event_fields": [...xapiField.event_fields, eventField.id]};
     this.api.updateXAPIField(xapiField.id, data).then(field => {
       if (!field) return;
+      this.keepZoom = true;
       this.props.updateField(field, true);
       alertService.success(`Added Field ${eventField.name} with success!`);
+    });
+  }
+
+  deleteXapiEventLink(eventXapi) {
+    const eventField = this.props.event.fields.get(eventXapi.event);
+    const xapiField = this.props.event.xapiFields.get(eventXapi.xapi);
+    if(!confirm(`Are you sure to want to delete Xapi field "${xapiField.name}" link with Event field "${eventField.name}" ?`)){
+      return;
+    };
+    const data = {"event_fields": xapiField.event_fields.filter(e => e !== eventField.id)}
+    this.api.updateXAPIField(xapiField.id, data).then(field => {
+      if (!field) return;
+      this.keepZoom = true;
+      this.props.updateField(field, true);
+      alertService.success(`Xapi field "${xapiField.name}" link with Event field "${eventField.name}" deleted with success!`);
     });
   }
 
@@ -197,7 +215,7 @@ class EventGraph extends Component {
     }));
   }
 
-  drawLinks(g, links, color = "#ccc", dash = ""){
+  drawLinks(g, links, color = "#ccc", dash = "", onMouseOver = () => {}, onMouseOut = () => {}, onclick = () => {}){
     g.append("g")
       .attr("fill", "none")
       .attr("stroke", color)
@@ -208,7 +226,11 @@ class EventGraph extends Component {
         .join("path")
           .attr("d", d3.linkHorizontal()
               .x(d => d.y)
-              .y(d => d.x));
+              .y(d => d.x))
+              .attr('pointer-events', 'mouseover')
+              .on("mouseover", onMouseOver)
+              .on("mouseout", onMouseOut)
+              .on("click", onclick);
   }
 
   getClickableNode(g, root, onclick) {
@@ -280,9 +302,23 @@ class EventGraph extends Component {
     const g = svg.append("g");
     this.drawToolTip(svg, g);
     
+    const thisEventGraph = this;
     this.drawLinks(g, eventRoot.links());
     this.drawLinks(g, xapiRoot.links());
-    this.drawLinks(g, this.getXapiLinks(), "#f55", "10,10");
+    this.drawLinks(
+      g,
+      this.getXapiLinks(),
+      "#f55",
+      "10,10",
+      function() {
+        this.setAttribute("stroke-width", "6px");
+      },
+      function() {
+        this.setAttribute("stroke-width", "2px");
+      },
+      function() {
+        thisEventGraph.deleteXapiEventLink(this.__data__.value);
+      });
     
     const node = this.getClickableNode(g, eventRoot, (treeNode, d) => this.clickNode(treeNode, d, "eventTooltipHidden"));
     const xapiNode = this.getClickableNode(g, xapiRoot, (treeNode, d) => this.clickNode(treeNode, d, "xapiTooltipHidden"));

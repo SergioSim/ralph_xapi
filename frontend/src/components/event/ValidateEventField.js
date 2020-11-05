@@ -36,7 +36,7 @@ class ValidateEventField extends Component {
 
   componentDidUpdate(){
     $('#validateEventModal').modal({show: this.props.hidden})
-    if (this.props.field && this.props.field.validate != "" && this.state.validate == "" && !this.userClearedValidate) {
+    if (this.props.hidden && this.props.field && this.props.field.validate != "" && this.state.validate == "" && !this.userClearedValidate) {
       this.fetchEventFieldTest()
     }
   }
