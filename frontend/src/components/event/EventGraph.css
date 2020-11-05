@@ -6,7 +6,6 @@
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
-
 .node {
   cursor: pointer;
 }
@@ -18,7 +17,6 @@
 
 .node text {
   font-family: sans-serif,Arial Black;
-  font-size: 20px;
 }
 
 .popover.bs-popover-right {
