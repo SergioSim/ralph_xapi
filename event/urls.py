@@ -29,5 +29,6 @@ urlpatterns = [
     path("test/field/", views.EventFieldTestListCreate.as_view()),
     path("test/field/<int:pk>", views.EventFieldTestDetail.as_view()),
     path("test/field/event/<int:field_id>", views.test_field_by_event),
-    path("code/field/<int:pk>", views.code_field)
+    path("code/field/<int:pk>", views.code_field),
+    path("code/event/<int:pk>", views.code_schema)
 ]

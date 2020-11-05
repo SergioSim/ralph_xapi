@@ -19,6 +19,8 @@ from .serializers import (
     DictNatureSerializer, NestedNatureSerializer, EventFieldTestSerializer,
     XAPIFieldSerializer
 )
+from .schema_gen import SchemaGen
+from marshmallow import ValidationError
 
 # import the logging library
 import logging
@@ -213,6 +215,19 @@ def code_field(request, pk):
     except urllib.error.URLError as ex:
         response_data = ex.reason
     return JsonResponse(json.loads(response_data))
+
+def code_schema(request, pk):
+    """Just for demo purpose"""
+    event = get_object_or_404(Event, pk=pk)
+    schema = SchemaGen.gen_schema_from_record(event)
+    event_json = request.body.decode("utf-8")
+    logger.error(event_json)
+    output = {}
+    try:
+        output = schema().dump(schema().loads(event_json))
+    except ValidationError as err:
+        output = {"errors": err.messages}
+    return JsonResponse(output)
 
 
 class IndexView(generic.ListView):

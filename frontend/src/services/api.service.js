@@ -153,4 +153,8 @@ export default class Api {
   validateEventField(id, expectedStatus = 200 ) {
     return this.apiFetch('api/event/code/field/' + id, "POST", {}, expectedStatus);
   }
+
+  validateEvent(id, body, expectedStatus = 200 ) {
+    return this.apiFetch('api/event/code/event/' + id, "POST", body, expectedStatus);
+  }
 }

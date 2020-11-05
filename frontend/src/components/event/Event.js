@@ -17,7 +17,9 @@ class Event extends Component {
       showAddField: false,
       showAddXapiField: false,
       showValidateField: false,
-      validateField: null
+      validateField: null,
+      eventJson: "",
+      eventJsonOutput: [],
     }
   }
 
@@ -66,6 +68,10 @@ class Event extends Component {
       event.name = name;
       return {event}
     })
+  }
+
+  handleEventJsonChange(event) {
+    this.setState({"eventJson": event.target.value});
   }
 
   handleParentChange(event) {
@@ -132,10 +138,25 @@ class Event extends Component {
     });
   }
 
+  submitEvent(){
+    let body = ""
+    try {
+      body = JSON.parse(this.state.eventJson);
+    } catch(e) {
+        alertService.error(e);
+        return;
+    }
+    this.api.validateEvent(this.props.event.id, body).then((response => {
+      if (!response) return;
+      this.setState({eventJsonOutput: JSON.stringify(response)});
+    }));
+  }
+
   render() {
     const showEdit = !(this.state.edit && this.props.editEvent && this.props.editEvent.id == this.props.event.id);
     const parent = this.props.event.parent &&
                   this.props.events.get(this.props.event.parent);
+    console.log(this.state.eventJsonOutput);
     return (
       <div className="container mt-4">
         <section className="mb-4">
@@ -228,6 +249,11 @@ class Event extends Component {
           deleteEventField={(field, callback) => this.deleteEventField(field, callback)}
           updateField={(field, isXapi) => this.updateField(field, isXapi)}
         />
+        <br/>
+        <textarea className="m-4 w-75" rows="20" value={this.state.eventJson} onChange={(e) => this.handleEventJsonChange(e)}></textarea>
+        <button className="btn btn-primary m-2" onClick={() => this.submitEvent()}>Submit</button>
+        <div className="my-5">{this.state.eventJsonOutput}</div>
+        <div className="my-5"></div>
       </div>
     );
   }
